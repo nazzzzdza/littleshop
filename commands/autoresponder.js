@@ -1,28 +1,73 @@
+const { SlashCommandBuilder } = require("discord.js");
+const fs = require("fs");
+const path = require("path");
+
+const filePath = path.join(__dirname, "../data/autoresponses.json");
+
+function loadResponses() {
+  if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, "{}");
+  return JSON.parse(fs.readFileSync(filePath));
+}
+
+function saveResponses(data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
 module.exports = {
-  name: "autoresponder",
+  data: new SlashCommandBuilder()
+    .setName("autoresponder")
+    .setDescription("manage autoresponders")
+
+    .addSubcommand(sub =>
+      sub
+        .setName("add")
+        .setDescription("add an autoresponder")
+        .addStringOption(option =>
+          option
+            .setName("trigger")
+            .setDescription("trigger")
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName("reply")
+            .setDescription("bots reply")
+            .setRequired(true)
+        )
+    ),
+
+  async execute(interaction) {
+
+    if (interaction.options.getSubcommand() === "add") {
+
+      const trigger = interaction.options.getString("trigger").trim();
+      const reply = interaction.options.getString("reply");
+
+      const responses = loadResponses();
+
+      responses[trigger] = reply;
+
+      saveResponses(responses);
+
+      await interaction.reply({
+        content: `autoresponder created for \`${trigger}\` ♡`,
+        ephemeral: true
+      });
+
+    }
+
+  },
 
   async handleMessage(message) {
+
     if (message.author.bot) return;
 
-    const supportRoleId = "1432683244805165199";
+    const responses = loadResponses();
+    const content = message.content.trim();
 
-    if (message.content.toLowerCase().startsWith(".ask")) {
-
-      if (!this.cooldowns) this.cooldowns = new Map();
-
-      const now = Date.now();
-      const cooldown = 5000;
-
-      if (this.cooldowns.has(message.channel.id)) {
-        const expiration = this.cooldowns.get(message.channel.id) + cooldown;
-        if (now < expiration) return;
-      }
-
-      this.cooldowns.set(message.channel.id, now);
-
-      await message.channel.send(
-        `-# <@&${supportRoleId}> someone needs assistance <3`
-      );
+    if (responses[content]) {
+      message.channel.send(responses[content]);
     }
+
   }
 };
