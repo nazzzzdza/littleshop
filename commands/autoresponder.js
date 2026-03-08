@@ -66,7 +66,7 @@ module.exports = {
     const content = message.content.trim();
 
     if (responses[content]) {
-      message.channel.send(responses[content]);
+      message.channel.send(responses[content].replace(/\\n/g, "\n"));
     }
 
   }
