@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 // Web server to keep Render awake
 // ---------------------------
 app.get("/", (req, res) => {
-  res.send("Littleshop is alive, checking your orders!");
+  res.send("littleshop is alive, checking your orders!");
 });
 
 app.listen(PORT, () => {
@@ -56,10 +56,10 @@ const autoResponder = require("./commands/autoresponder");
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 client.once("ready", async () => {
-  console.log(`Lacey is online as ${client.user.tag}`);
+  console.log(`little shop is online as ${client.user.tag}`);
 
   const latency = Date.now() - client.readyTimestamp;
-  console.log(`🏎️ Lacey latency: ${latency}ms`);
+  console.log(`little shop's latency: ${latency}ms`);
 
   client.user.setPresence({
     activities: [{
