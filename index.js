@@ -118,12 +118,14 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-// ---------------------------
-// Handle normal messages
-// ---------------------------
 client.on("messageCreate", async (message) => {
-  stickyCommand.handleMessage(message);
-  autoResponder.handleMessage(message);
+
+  for (const command of client.commands.values()) {
+    if (typeof command.handleMessage === "function") {
+      command.handleMessage(message);
+    }
+  }
+
 });
 
 // ---------------------------
