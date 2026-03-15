@@ -5,8 +5,25 @@ const path = require("path");
 const filePath = path.join(__dirname, "../data/autoresponses.json");
 
 function loadResponses() {
-  if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, "{}");
-  return JSON.parse(fs.readFileSync(filePath));
+  try {
+
+    if (!fs.existsSync("responses.json")) {
+      fs.writeFileSync("responses.json", "{}");
+      return {};
+    }
+
+    const data = fs.readFileSync("responses.json", "utf8");
+
+    if (!data.trim()) {
+      return {};
+    }
+
+    return JSON.parse(data);
+
+  } catch (err) {
+    console.error("Error loading responses:", err);
+    return {};
+  }
 }
 
 function saveResponses(data) {
