@@ -129,4 +129,8 @@ client.on("messageCreate", async (message) => {
 // ---------------------------
 // Login
 // ---------------------------
-client.login(process.env.TOKEN);
+console.log("Token loaded:", process.env.TOKEN ? "YES" : "NO");
+
+client.login(process.env.TOKEN)
+  .then(() => console.log("Discord login successful"))
+  .catch(err => console.error("Discord login failed:", err));
