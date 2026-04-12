@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 // Web server to keep Render awake
 // ---------------------------
 app.get("/", (req, res) => {
-  res.send("littleshop is alive, checking your orders!");
+  res.send("polka's helper is alive, checking your orders!");
 });
 
 app.listen(PORT, () => {
@@ -56,16 +56,16 @@ const autoResponder = require("./commands/autoresponder");
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 client.once("ready", async () => {
-  console.log(`little shop is online as ${client.user.tag}`);
+  console.log(`polka's helper is online as ${client.user.tag}`);
 
   const latency = Date.now() - client.readyTimestamp;
-  console.log(`little shop's latency: ${latency}ms`);
+  console.log(`polka's helper latency: ${latency}ms`);
 
   client.user.setPresence({
     activities: [{
       name: "processing your orders <3",
       type: 1,
-      url: "https://www.twitch.tv/laceyshp"
+      url: "https://www.twitch.tv/discord"
     }],
     status: "online"
   });
@@ -97,7 +97,7 @@ client.on("interactionCreate", async (interaction) => {
       console.error(error);
       if (!interaction.replied) {
         await interaction.reply({
-          content: "There was an error executing that command, dm naz with ss.",
+          content: "there was an error executing that command, dm naz to inform.",
           ephemeral: true
         });
       }
