@@ -7,14 +7,12 @@ module.exports = {
     .addStringOption(option =>
       option
         .setName("txid")
-        .setDescription(" transaction id")
+        .setDescription("transaction id")
         .setRequired(true)
     ),
 
   async execute(interaction) {
     const txid = interaction.options.getString("txid");
-
-    await interaction.deferReply();
 
     try {
       // fetch transaction
@@ -22,7 +20,10 @@ module.exports = {
       const txData = await txRes.json();
 
       if (!txData || txData.error) {
-        return interaction.editReply("invalid transaction id");
+        return interaction.reply({
+          content: "invalid transaction id",
+          ephemeral: true
+        });
       }
 
       const confirmations = txData.confirmations || 0;
@@ -40,22 +41,20 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0xFFFFFF)
-        .setTitle("litecoin transaction")
+        .setTitle("transaction")
         .addFields(
-          { name: "tx id : ", value: `\`${txid}\`` },
-          { name: "amount : ", value: `$${amountUSD}` },
-          { name: "confirmations : ", value: `${confirmations}` },
-          { name: "status : ", value: status }
+          { name: "tx id", value: `\`${txid}\`` },
+          { name: "amount", value: `$${amountUSD}` },
+          { name: "confirmations", value: `${confirmations}` },
+          { name: "status", value: status }
         );
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.reply({ embeds: [embed] });
 
     } catch (err) {
       console.error("TX ERROR:", err);
 
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply("error fetching transaction");
-      } else {
+      if (!interaction.replied) {
         await interaction.reply({
           content: "error fetching transaction",
           ephemeral: true
