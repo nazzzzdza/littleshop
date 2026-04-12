@@ -48,7 +48,6 @@ for (const file of commandFiles) {
 
 // Load message-based systems
 const stickyCommand = require("./commands/sticky");
-const autoResponder = require("./commands/autoresponder");
 
 // ---------------------------
 // Register slash commands
