@@ -3,34 +3,36 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("tx")
-    .setDescription("check litecoin transaction")
+    .setDescription("check transaction")
     .addStringOption(option =>
       option
         .setName("txid")
-        .setDescription("litecoin transaction id")
+        .setDescription("transaction id")
         .setRequired(true)
     ),
 
   async execute(interaction) {
     const txid = interaction.options.getString("txid");
 
-    try {
-      // ⚡ ALWAYS ACKNOWLEDGE IMMEDIATELY
-      await interaction.deferReply();
+    // ⚡ STEP 1: INSTANT RESPONSE (NO HANG)
+    await interaction.reply({
+      content: "checking transaction...",
+      ephemeral: true
+    });
 
-      // fetch tx
+    try {
+      // ⚡ STEP 2: FETCH TX (AFTER REPLY)
       const txRes = await fetch(`https://api.blockcypher.com/v1/ltc/main/txs/${txid}`);
       const txData = await txRes.json();
 
       if (!txData || txData.error) {
-        return interaction.editReply("❌ invalid transaction id");
+        return interaction.editReply("invalid transaction id");
       }
 
       const confirmations = txData.confirmations || 0;
-      const amountLitoshi = txData.total || 0;
-      const amountLTC = amountLitoshi / 100000000;
+      const amountLTC = (txData.total || 0) / 100000000;
 
-      // price
+      // price fetch
       const priceRes = await fetch(
         "https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd"
       );
@@ -43,31 +45,22 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0xFFFFFF)
-        .setTitle("transaction")
+        .setTitle("crypto transaction")
         .addFields(
-          { name: "tx id", value: `\`${txid}\`` },
-          { name: "amount (USD)", value: `$${amountUSD}` },
-          { name: "confirmations", value: `${confirmations}` },
-          { name: "status", value: status }
+          { name: "tx id : ", value: `\`${txid}\`` },
+          { name: "amount : ", value: `$${amountUSD}` },
+          { name: "confirmations : ", value: `${confirmations}` },
+          { name: "status : ", value: status }
         );
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({
+        content: null,
+        embeds: [embed]
+      });
 
     } catch (err) {
-      console.error("TX ERROR:", err);
-
-      try {
-        if (interaction.deferred || interaction.replied) {
-          await interaction.editReply("❌ error fetching transaction");
-        } else {
-          await interaction.reply({
-            content: "❌ error fetching transaction",
-            ephemeral: true
-          });
-        }
-      } catch (e) {
-        console.error("FINAL SAFETY ERROR:", e);
-      }
+      console.error(err);
+      await interaction.editReply("failed to fetch transaction");
     }
   }
 };
