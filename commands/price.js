@@ -36,7 +36,6 @@ function buildEmbed(amount, methodKey) {
       `﹒ __to__t**a**l : ${method.currency}${calc.total}\n\n` +
       `﹒ __y__ou r**ece**i__v__e : ${method.currency}${amount}`
     )
-    .setTimestamp();
 }
 
 module.exports = {
