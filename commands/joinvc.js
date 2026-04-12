@@ -1,28 +1,46 @@
-const { joinVoiceChannel } = require('@discordjs/voice');
+const { SlashCommandBuilder } = require("discord.js");
+const { joinVoiceChannel } = require("@discordjs/voice");
+
+// shared storage (from index.js)
+global.voiceConnections = global.voiceConnections || new Map();
 
 module.exports = {
-  name: 'joinvc',
-  description: 'joins a vc',
+  data: new SlashCommandBuilder()
+    .setName("joinvc")
+    .setDescription("make the bot stay in a voice channel")
+    .addChannelOption(option =>
+      option
+        .setName("channel")
+        .setDescription("mention which vc")
+        .setRequired(true)
+    ),
 
-  async execute(message) {
-    if (!message.member.voice.channel) {
-      return message.reply('you need to join a voice channel first !');
-    }
+  async execute(interaction) {
+    const channel = interaction.options.getChannel("channel");
 
-    const channel = message.member.voice.channel;
-
-    try {
-      joinVoiceChannel({
-        channelId: channel.id,
-        guildId: message.guild.id,
-        adapterCreator: message.guild.voiceAdapterCreator,
-        selfDeaf: false,
+    if (!channel || !channel.isVoiceBased()) {
+      return interaction.reply({
+        content: "please select a valid voice channel",
+        ephemeral: true
       });
-
-      message.reply(`joined ${channel.name} !`);
-    } catch (err) {
-      console.error(err);
-      message.reply('failed to join the voice channel :(');
     }
-  },
+
+    // join voice channel
+    joinVoiceChannel({
+      channelId: channel.id,
+      guildId: interaction.guild.id,
+      adapterCreator: interaction.guild.voiceAdapterCreator,
+      selfDeaf: true
+    });
+
+    // store for auto-rejoin
+    global.voiceConnections.set(interaction.guild.id, {
+      channelId: channel.id
+    });
+
+    await interaction.reply({
+      content: `joined **${channel.name}** ! `,
+      ephemeral: true
+    });
+  }
 };
