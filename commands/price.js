@@ -1,9 +1,6 @@
 const { 
   SlashCommandBuilder, 
-  EmbedBuilder, 
-  ActionRowBuilder, 
-  ButtonBuilder, 
-  ButtonStyle 
+  EmbedBuilder 
 } = require("discord.js");
 
 // fees
@@ -25,7 +22,7 @@ function calculate(amount, feePercent) {
   };
 }
 
-function buildEmbed(user, amount, methodKey) {
+function buildEmbed(amount, methodKey) {
   const method = METHODS[methodKey];
   const calc = calculate(amount, method.fee);
 
@@ -33,7 +30,6 @@ function buildEmbed(user, amount, methodKey) {
     .setColor(0xFFFFFF)
     .setTitle("𑣲﹒price calculation ")
     .setDescription(
-      `﹒ u**se**r: <@${user.id}>\n\n` +
       `﹒ **a**mo__un__t : ${method.currency}${amount}\n` +
       `﹒ m__eth__o**d** : ${method.name}\n\n` +
       `﹒ **f**e__e__ : ${method.fee}% (${method.currency}${calc.fee})\n` +
@@ -41,40 +37,6 @@ function buildEmbed(user, amount, methodKey) {
       `﹒ __y__ou r**ece**i__v__e : ${method.currency}${amount}`
     )
     .setTimestamp();
-}
-
-function buildButtons(active) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("price_cashapp_teen")
-      .setLabel("cashapp -18")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(active === "cashapp_teen"),
-
-    new ButtonBuilder()
-      .setCustomId("price_cashapp_adult")
-      .setLabel("cashapp +18")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(active === "cashapp_adult"),
-
-    new ButtonBuilder()
-      .setCustomId("price_paypal_eur")
-      .setLabel("paypal €")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(active === "paypal_eur"),
-
-    new ButtonBuilder()
-      .setCustomId("price_paypal_usd")
-      .setLabel("paypal $")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(active === "paypal_usd"),
-
-    new ButtonBuilder()
-      .setCustomId("price_applepay")
-      .setLabel("apple pay")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(active === "applepay")
-  );
 }
 
 module.exports = {
@@ -104,34 +66,10 @@ module.exports = {
     const amount = interaction.options.getNumber("amount");
     const method = interaction.options.getString("method");
 
-    const embed = buildEmbed(interaction.user, amount, method);
+    const embed = buildEmbed(amount, method);
 
     await interaction.reply({
-      embeds: [embed],
-      components: [buildButtons(method)]
-    });
-  },
-
-  async handleInteraction(interaction) {
-    if (!interaction.isButton()) return;
-    if (!interaction.customId.startsWith("price_")) return;
-
-    const method = interaction.customId.replace("price_", "");
-
-    const oldEmbed = interaction.message.embeds[0];
-    if (!oldEmbed) return;
-
-    // Extract amount from embed text
-    const match = oldEmbed.description.match(/amount: [€$](\d+(\.\d+)?)/);
-    if (!match) return;
-
-    const amount = parseFloat(match[1]);
-
-    const newEmbed = buildEmbed(interaction.user, amount, method);
-
-    await interaction.update({
-      embeds: [newEmbed],
-      components: [buildButtons(method)]
+      embeds: [embed]
     });
   }
 };
