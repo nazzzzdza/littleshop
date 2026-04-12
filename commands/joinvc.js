@@ -1,24 +1,32 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, ChannelType } = require("discord.js");
 const { joinVoiceChannel } = require("@discordjs/voice");
 
-// shared storage (from index.js)
+// shared storage
 global.voiceConnections = global.voiceConnections || new Map();
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("joinvc")
-    .setDescription("make the bot stay in a voice channel")
+    .setDescription("joins vc")
     .addChannelOption(option =>
       option
         .setName("channel")
-        .setDescription("mention which vc")
+        .setDescription("mention vc")
+        .addChannelTypes(ChannelType.GuildVoice) //
         .setRequired(true)
     ),
 
   async execute(interaction) {
     const channel = interaction.options.getChannel("channel");
 
-    if (!channel || !channel.isVoiceBased()) {
+    if (!interaction.guild) {
+      return interaction.reply({
+        content: "this command can only be used in a server",
+        ephemeral: true
+      });
+    }
+
+    if (!channel) {
       return interaction.reply({
         content: "please select a valid voice channel",
         ephemeral: true
