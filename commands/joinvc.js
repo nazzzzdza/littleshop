@@ -1,45 +1,28 @@
-const { SlashCommandBuilder } = require("discord.js");
-const { joinVoiceChannel } = require("@discordjs/voice");
-
-// store active connection per guild
-const connections = new Map();
+const { joinVoiceChannel } = require('@discordjs/voice');
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName("joinvc")
-    .setDescription("joins vc")
-    .addChannelOption(option =>
-      option
-        .setName("channel")
-        .setDescription("channel")
-        .setRequired(true)
-    ),
+  name: 'joinvc',
+  description: 'joins a vc',
 
-  async execute(interaction) {
-    const channel = interaction.options.getChannel("channel");
-
-    if (!channel || !channel.isVoiceBased()) {
-      return interaction.reply({
-        content: "please select a valid voice channel",
-        ephemeral: true
-      });
+  async execute(message) {
+    if (!message.member.voice.channel) {
+      return message.reply('you need to join a voice channel first !');
     }
 
-    const connection = joinVoiceChannel({
-      channelId: channel.id,
-      guildId: interaction.guild.id,
-      adapterCreator: interaction.guild.voiceAdapterCreator,
-      selfDeaf: true
-    });
+    const channel = message.member.voice.channel;
 
-    connections.set(interaction.guild.id, {
-      connection,
-      channelId: channel.id
-    });
+    try {
+      joinVoiceChannel({
+        channelId: channel.id,
+        guildId: message.guild.id,
+        adapterCreator: message.guild.voiceAdapterCreator,
+        selfDeaf: false,
+      });
 
-    await interaction.reply({
-      content: `joined ${channel.name} !`,
-      ephemeral: true
-    });
-  }
+      message.reply(`joined ${channel.name} !`);
+    } catch (err) {
+      console.error(err);
+      message.reply('failed to join the voice channel :(');
+    }
+  },
 };
