@@ -7,7 +7,7 @@ const {
 const METHODS = {
   cashapp_teen: { name: "cashapp -18", fee: 4, currency: "$" },
   cashapp_adult: { name: "cashapp +18", fee: 4, currency: "$" },
-  paypal_eur: { name: "paypal €", fee: 7, currency: "€" },
+  paypal_eur: { name: "paypal €", fee: 8, currency: "€" },
   paypal_usd: { name: "paypal $", fee: 2, currency: "$" },
   applepay: { name: "apple pay", fee: 2, currency: "$" },
   ltc: { name: "ltc", fee: 0, currency: "$" }
