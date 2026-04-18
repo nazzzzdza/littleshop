@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ---------------------------
-// Web server (Render keep alive)
+// Web server (Render keep-alive)
 // ---------------------------
 app.get("/", (req, res) => {
   res.send("littleshop is alive");
@@ -28,14 +28,14 @@ const client = new Client({
 });
 
 // ---------------------------
-// DEBUG (safe)
+// Safety logs (NO TOKEN LOGGING)
 // ---------------------------
 client.on("debug", (info) => console.log("[DEBUG]", info));
 client.on("warn", (info) => console.log("[WARN]", info));
 client.on("error", (err) => console.log("[ERROR]", err));
 
 // ---------------------------
-// Commands loader (safe)
+// Command handler
 // ---------------------------
 client.commands = new Collection();
 
@@ -53,9 +53,8 @@ for (const file of commandFiles) {
     } else {
       console.log("Skipped invalid:", file);
     }
-
   } catch (err) {
-    console.log("❌ Failed loading:", file);
+    console.log("❌ Error loading:", file);
     console.error(err);
   }
 }
@@ -130,7 +129,7 @@ client.on("messageCreate", (message) => {
 // ---------------------------
 // LOGIN
 // ---------------------------
-console.log("Token loaded:", process.env.TOKEN ? "YES" : "NO");
+console.log("TOKEN LOADED:", process.env.TOKEN ? "YES" : "NO");
 
 client.login(process.env.TOKEN)
   .then(() => console.log("Discord login successful"))
