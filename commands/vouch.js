@@ -9,21 +9,33 @@ const {
 const fs = require("fs");
 const path = require("path");
 
-const filePath = path.join(__dirname, "../data/vouches.json");
+// ✅ FIX: ensure /data folder exists
+const dataDir = path.join(__dirname, "../data");
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
-// ONLY THIS USER CAN REMOVE (kept from your system if needed later)
-const ADMIN_ID = "827566073611419698";
+const filePath = path.join(dataDir, "vouches.json");
 
 // ---------------- LOAD / SAVE ----------------
 function loadVouches() {
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify([]));
+  try {
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify([]));
+    }
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (err) {
+    console.error("VOUCH LOAD ERROR:", err);
+    return [];
   }
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
 function saveVouches(data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error("VOUCH SAVE ERROR:", err);
+  }
 }
 
 function generateId() {
@@ -36,7 +48,6 @@ module.exports = {
     .setName("vouch")
     .setDescription("vouch system")
 
-    // ADD
     .addSubcommand(sub =>
       sub
         .setName("add")
@@ -48,17 +59,16 @@ module.exports = {
           opt.setName("product").setRequired(true).setDescription("product")
         )
         .addStringOption(opt =>
-          opt.setName("amount").setRequired(true).setDescription("amount (e.g 1x)")
+          opt.setName("amount").setRequired(true).setDescription("amount")
         )
         .addStringOption(opt =>
           opt.setName("price").setRequired(true).setDescription("price")
         )
         .addStringOption(opt =>
-          opt.setName("payment").setRequired(true).setDescription("payment method")
+          opt.setName("payment").setRequired(true).setDescription("payment")
         )
     )
 
-    // LIST
     .addSubcommand(sub =>
       sub
         .setName("list")
@@ -68,12 +78,11 @@ module.exports = {
         )
     ),
 
-  // ---------------- EXECUTE ----------------
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
     const vouches = loadVouches();
 
-    // ================= ADD =================
+    // ADD
     if (sub === "add") {
       const user = interaction.options.getUser("user");
       const product = interaction.options.getString("product");
@@ -95,7 +104,6 @@ module.exports = {
 
       saveVouches(vouches);
 
-      // NORMAL MESSAGE (your style)
       await interaction.channel.send(
 `_ _
 _ _     <a:c_butterflies:1332122946931790046> <@${user.id}>'s vouch !
@@ -106,7 +114,7 @@ _ _                   ﹒for ${price} ${payment}`
       return interaction.reply({ content: "vouch sent ♡", ephemeral: true });
     }
 
-    // ================= LIST =================
+    // LIST
     if (sub === "list") {
       const user = interaction.options.getUser("user");
       const userVouches = vouches.filter(v => v.user === user.id);
@@ -160,7 +168,6 @@ _ _                   ﹒#${v.id}`
     }
   },
 
-  // ================= BUTTON HANDLER =================
   async handleInteraction(interaction) {
     if (!interaction.isButton()) return;
     if (!interaction.customId.startsWith("vouch_")) return;
