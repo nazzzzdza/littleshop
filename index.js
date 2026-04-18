@@ -1,4 +1,3 @@
-// Littleshop Discord Bot
 const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
@@ -10,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 // Web server (Render keep alive)
 // ---------------------------
 app.get("/", (req, res) => {
-  res.send("polka's helper is alive, checking your orders!");
+  res.send("littleshop is alive");
 });
 
 app.listen(PORT, () => {
@@ -29,26 +28,18 @@ const client = new Client({
 });
 
 // ---------------------------
-// DEBUG LOGS (IMPORTANT)
+// DEBUG (safe)
 // ---------------------------
-client.on("debug", (info) => {
-  console.log("[DEBUG]", info);
-});
-
-client.on("warn", (info) => {
-  console.log("[WARN]", info);
-});
-
-client.on("error", (error) => {
-  console.log("[ERROR]", error);
-});
+client.on("debug", (info) => console.log("[DEBUG]", info));
+client.on("warn", (info) => console.log("[WARN]", info));
+client.on("error", (err) => console.log("[ERROR]", err));
 
 // ---------------------------
-// Commands setup
+// Commands loader (safe)
 // ---------------------------
 client.commands = new Collection();
 
-const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith(".js"));
+const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
 const commands = [];
 
 for (const file of commandFiles) {
@@ -58,12 +49,13 @@ for (const file of commandFiles) {
     if (command?.data?.name) {
       client.commands.set(command.data.name, command);
       commands.push(command.data.toJSON());
-      console.log("Loaded command:", file);
+      console.log("Loaded:", file);
     } else {
-      console.log("Skipped invalid command:", file);
+      console.log("Skipped invalid:", file);
     }
+
   } catch (err) {
-    console.log("❌ Failed loading command:", file);
+    console.log("❌ Failed loading:", file);
     console.error(err);
   }
 }
@@ -77,12 +69,12 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 // READY EVENT
 // ---------------------------
 client.once("ready", async () => {
-  console.log("READY EVENT TRIGGERED");
+  console.log("BOT READY TRIGGERED");
   console.log("Logged in as:", client.user.tag);
 
   client.user.setPresence({
     activities: [{
-      name: "processing your orders <3",
+      name: "processing orders <3",
       type: 1,
       url: "https://www.twitch.tv/discord"
     }],
@@ -105,31 +97,21 @@ client.once("ready", async () => {
 // Interaction handler
 // ---------------------------
 client.on("interactionCreate", async (interaction) => {
-  if (interaction.isChatInputCommand()) {
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
+  if (!interaction.isChatInputCommand()) return;
 
-    try {
-      await command.execute(interaction);
-    } catch (error) {
-      console.error(error);
+  const command = client.commands.get(interaction.commandName);
+  if (!command) return;
 
-      if (!interaction.replied) {
-        await interaction.reply({
-          content: "there was an error executing that command, dm naz to inform.",
-          ephemeral: true
-        });
-      }
-    }
-  } else {
-    for (const command of client.commands.values()) {
-      if (typeof command.handleInteraction === "function") {
-        try {
-          await command.handleInteraction(interaction);
-        } catch (err) {
-          console.error(err);
-        }
-      }
+  try {
+    await command.execute(interaction);
+  } catch (err) {
+    console.error(err);
+
+    if (!interaction.replied) {
+      await interaction.reply({
+        content: "error executing command",
+        ephemeral: true
+      });
     }
   }
 });
@@ -137,14 +119,10 @@ client.on("interactionCreate", async (interaction) => {
 // ---------------------------
 // Message handler
 // ---------------------------
-client.on("messageCreate", async (message) => {
+client.on("messageCreate", (message) => {
   for (const command of client.commands.values()) {
     if (typeof command.handleMessage === "function") {
-      try {
-        command.handleMessage(message);
-      } catch (err) {
-        console.error(err);
-      }
+      command.handleMessage(message);
     }
   }
 });
@@ -155,9 +133,5 @@ client.on("messageCreate", async (message) => {
 console.log("Token loaded:", process.env.TOKEN ? "YES" : "NO");
 
 client.login(process.env.TOKEN)
-  .then(() => {
-    console.log("Discord login successful");
-  })
-  .catch((err) => {
-    console.error("Discord login failed:", err);
-  });
+  .then(() => console.log("Discord login successful"))
+  .catch(err => console.error("Discord login failed:", err));
