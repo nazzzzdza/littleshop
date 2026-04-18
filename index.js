@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ---------------------------
-// Web server (Render keep-alive)
+// Web server (Render keep alive)
 // ---------------------------
 app.get("/", (req, res) => {
   res.send("polka's helper is alive, checking your orders!");
@@ -28,14 +28,28 @@ const client = new Client({
   ]
 });
 
+// ---------------------------
+// DEBUG LOGS (IMPORTANT)
+// ---------------------------
+client.on("debug", (info) => {
+  console.log("[DEBUG]", info);
+});
+
+client.on("warn", (info) => {
+  console.log("[WARN]", info);
+});
+
+client.on("error", (error) => {
+  console.log("[ERROR]", error);
+});
+
+// ---------------------------
+// Commands setup
+// ---------------------------
 client.commands = new Collection();
 
-// ---------------------------
-// SAFE command loader (IMPORTANT FIX)
-// ---------------------------
+const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith(".js"));
 const commands = [];
-
-const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
 
 for (const file of commandFiles) {
   try {
@@ -44,29 +58,27 @@ for (const file of commandFiles) {
     if (command?.data?.name) {
       client.commands.set(command.data.name, command);
       commands.push(command.data.toJSON());
-
-      console.log(`Loaded command: ${file}`);
+      console.log("Loaded command:", file);
     } else {
-      console.log(`Skipped invalid command: ${file}`);
+      console.log("Skipped invalid command:", file);
     }
-
   } catch (err) {
-    console.log(`❌ Failed loading ${file}`);
+    console.log("❌ Failed loading command:", file);
     console.error(err);
   }
 }
 
 // ---------------------------
-// REST setup
+// REST
 // ---------------------------
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 // ---------------------------
-// Ready event
+// READY EVENT
 // ---------------------------
 client.once("ready", async () => {
-  console.log("BOT READY TRIGGERED");
-  console.log(`Logged in as ${client.user.tag}`);
+  console.log("READY EVENT TRIGGERED");
+  console.log("Logged in as:", client.user.tag);
 
   client.user.setPresence({
     activities: [{
@@ -85,7 +97,7 @@ client.once("ready", async () => {
 
     console.log("Slash commands registered.");
   } catch (err) {
-    console.error("Failed to register commands:", err);
+    console.error("Command register error:", err);
   }
 });
 
@@ -138,7 +150,7 @@ client.on("messageCreate", async (message) => {
 });
 
 // ---------------------------
-// Login
+// LOGIN
 // ---------------------------
 console.log("Token loaded:", process.env.TOKEN ? "YES" : "NO");
 
