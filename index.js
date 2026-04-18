@@ -1,13 +1,13 @@
-const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
+const { Client, GatewayIntentBits, REST, Routes, Collection, ActivityType } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
 
-// --------------------
-// EXPRESS KEEP ALIVE
-// --------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// -------------------
+// Express
+// -------------------
 app.get("/", (req, res) => {
   res.send("bot alive");
 });
@@ -16,30 +16,22 @@ app.listen(PORT, () => {
   console.log("Web server running on port", PORT);
 });
 
-// --------------------
-// DISCORD CLIENT
-// --------------------
+// -------------------
+// Client
+// -------------------
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
-  ],
-  rest: { timeout: 15000 }
+  ]
 });
 
 client.commands = new Collection();
 
-// --------------------
-// HEARTBEAT (important for Render visibility)
-// --------------------
-setInterval(() => {
-  console.log(`[HEARTBEAT] Bot running - ${new Date().toISOString()}`);
-}, 30000);
-
-// --------------------
-// COMMAND LOADER (SAFE)
-// --------------------
+// -------------------
+// Commands loader
+// -------------------
 const commands = [];
 
 if (fs.existsSync("./commands")) {
@@ -62,25 +54,32 @@ if (fs.existsSync("./commands")) {
   }
 }
 
-// --------------------
-// REST
-// --------------------
-const token = process.env.TOKEN;
+// -------------------
+// TOKEN FIX (IMPORTANT)
+// -------------------
+const token = process.env.TOKEN?.trim();
+
 if (!token) {
-  console.error("Missing TOKEN in environment variables");
+  console.error("NO TOKEN FOUND IN ENV (TOKEN)");
   process.exit(1);
 }
 
+// -------------------
+// REST
+// -------------------
 const rest = new (require("@discordjs/rest").REST)({ version: "10" }).setToken(token);
 
-// --------------------
-// READY EVENT
-// --------------------
+// -------------------
+// READY
+// -------------------
 client.once("ready", async () => {
-  console.log("✅ BOT ONLINE:", client.user.tag);
+  console.log("BOT ONLINE:", client.user.tag);
 
   client.user.setPresence({
-    activities: [{ name: "stable system active", type: 0 }],
+    activities: [{
+      name: "processing orders <3",
+      type: ActivityType.Playing
+    }],
     status: "online"
   });
 
@@ -96,75 +95,36 @@ client.once("ready", async () => {
   }
 });
 
-// --------------------
-// AUTO RECONNECT LOGIC
-// --------------------
-client.on("disconnect", () => {
-  console.log("⚠️ Bot disconnected, attempting reconnect...");
-});
-
-client.on("shardDisconnect", () => {
-  console.log("⚠️ Shard disconnected");
-});
-
-client.on("shardReconnecting", () => {
-  console.log("🔄 Shard reconnecting...");
-});
-
-client.on("error", (err) => {
-  console.error("❌ Client error:", err);
-});
-
-// --------------------
+// -------------------
 // INTERACTIONS
-// --------------------
+// -------------------
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  const cmd = client.commands.get(interaction.commandName);
-  if (!cmd) return;
+  const command = client.commands.get(interaction.commandName);
+  if (!command) return;
 
   try {
-    await cmd.execute(interaction);
+    await command.execute(interaction);
   } catch (err) {
     console.error(err);
 
     if (!interaction.replied) {
       await interaction.reply({
-        content: "command error",
+        content: "error executing command",
         ephemeral: true
       }).catch(() => {});
     }
   }
 });
 
-// --------------------
-// SAFE LOGIN LOOP (CRASH RECOVERY)
-// --------------------
-async function startBot() {
-  try {
-    console.log("Attempting login...");
+// -------------------
+// LOGIN (FIXED + DEBUG)
+// -------------------
+console.log("TOKEN LENGTH:", token.length);
 
-    await client.login(token);
-
-    console.log("LOGIN SUCCESS");
-  } catch (err) {
+client.login(token)
+  .then(() => console.log("LOGIN SUCCESS"))
+  .catch(err => {
     console.error("LOGIN FAILED:", err);
-
-    console.log("Retrying in 10 seconds...");
-    setTimeout(startBot, 10000);
-  }
-}
-
-startBot();
-
-// --------------------
-// PROCESS SAFETY (prevents Render death loops)
-// --------------------
-process.on("unhandledRejection", (err) => {
-  console.error("Unhandled promise rejection:", err);
-});
-
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught exception:", err);
-});
+  });
