@@ -7,58 +7,66 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ---------------------------
-// Web server to keep Render awake
+// Web server (Render keep-alive)
 // ---------------------------
 app.get("/", (req, res) => {
   res.send("polka's helper is alive, checking your orders!");
 });
 
 app.listen(PORT, () => {
-  console.log(`Web server running on port ${PORT}`);
+  console.log("Web server running on port", PORT);
 });
 
 // ---------------------------
 // Discord client
 // ---------------------------
-const client = new Client({ 
+const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
-  ] 
+  ]
 });
 
 client.commands = new Collection();
 
 // ---------------------------
-// Load commands dynamically
+// SAFE command loader (IMPORTANT FIX)
 // ---------------------------
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 const commands = [];
 
-for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
+const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
 
-  // Only register slash commands
-  if (command.data) {
-    client.commands.set(command.data.name, command);
-    commands.push(command.data.toJSON());
+for (const file of commandFiles) {
+  try {
+    const command = require(`./commands/${file}`);
+
+    if (command?.data?.name) {
+      client.commands.set(command.data.name, command);
+      commands.push(command.data.toJSON());
+
+      console.log(`Loaded command: ${file}`);
+    } else {
+      console.log(`Skipped invalid command: ${file}`);
+    }
+
+  } catch (err) {
+    console.log(`❌ Failed loading ${file}`);
+    console.error(err);
   }
 }
 
-// Load message-based systems
-const stickyCommand = require("./commands/sticky");
-
 // ---------------------------
-// Register slash commands
+// REST setup
 // ---------------------------
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
+// ---------------------------
+// Ready event
+// ---------------------------
 client.once("ready", async () => {
-  console.log(`polka's helper is online as ${client.user.tag}`);
-
-  const latency = Date.now() - client.readyTimestamp;
-  console.log(`polka's helper latency: ${latency}ms`);
+  console.log("BOT READY TRIGGERED");
+  console.log(`Logged in as ${client.user.tag}`);
 
   client.user.setPresence({
     activities: [{
@@ -74,18 +82,17 @@ client.once("ready", async () => {
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
+
     console.log("Slash commands registered.");
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("Failed to register commands:", err);
   }
 });
 
 // ---------------------------
-// Handle ALL interactions
+// Interaction handler
 // ---------------------------
 client.on("interactionCreate", async (interaction) => {
-
-  // Slash Commands
   if (interaction.isChatInputCommand()) {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
@@ -94,6 +101,7 @@ client.on("interactionCreate", async (interaction) => {
       await command.execute(interaction);
     } catch (error) {
       console.error(error);
+
       if (!interaction.replied) {
         await interaction.reply({
           content: "there was an error executing that command, dm naz to inform.",
@@ -101,30 +109,32 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
     }
-  }
-
-  // Buttons, Modals, Select Menus, etc.
-  else {
+  } else {
     for (const command of client.commands.values()) {
       if (typeof command.handleInteraction === "function") {
         try {
           await command.handleInteraction(interaction);
-        } catch (error) {
-          console.error(error);
+        } catch (err) {
+          console.error(err);
         }
       }
     }
   }
 });
 
+// ---------------------------
+// Message handler
+// ---------------------------
 client.on("messageCreate", async (message) => {
-
   for (const command of client.commands.values()) {
     if (typeof command.handleMessage === "function") {
-      command.handleMessage(message);
+      try {
+        command.handleMessage(message);
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
-
 });
 
 // ---------------------------
