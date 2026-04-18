@@ -1,89 +1,86 @@
-const { Client, GatewayIntentBits, REST, Routes, Collection, ActivityType } = require("discord.js");
+const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
 
+// --------------------
+// EXPRESS KEEP ALIVE
+// --------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// -------------------
-// Discord client
-// -------------------
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
-});
-
-client.commands = new Collection();
-
-// -------------------
-// Express server
-// -------------------
 app.get("/", (req, res) => {
-  res.send(`littleshop is alive (${client.isReady() ? "online" : "starting"})`);
+  res.send("bot alive");
 });
 
 app.listen(PORT, () => {
   console.log("Web server running on port", PORT);
 });
 
-// -------------------
-// LOAD COMMANDS
-// -------------------
+// --------------------
+// DISCORD CLIENT
+// --------------------
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ],
+  rest: { timeout: 15000 }
+});
+
+client.commands = new Collection();
+
+// --------------------
+// HEARTBEAT (important for Render visibility)
+// --------------------
+setInterval(() => {
+  console.log(`[HEARTBEAT] Bot running - ${new Date().toISOString()}`);
+}, 30000);
+
+// --------------------
+// COMMAND LOADER (SAFE)
+// --------------------
 const commands = [];
 
-const commandFiles = fs.existsSync("./commands")
-  ? fs.readdirSync("./commands").filter(f => f.endsWith(".js"))
-  : [];
+if (fs.existsSync("./commands")) {
+  const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
 
-for (const file of commandFiles) {
-  try {
-    const command = require(`./commands/${file}`);
+  for (const file of files) {
+    try {
+      const cmd = require(`./commands/${file}`);
 
-    if (!command?.data?.name || !command?.execute) {
-      console.log("Skipped invalid command:", file);
-      continue;
+      if (!cmd?.data?.name || !cmd?.execute) continue;
+
+      client.commands.set(cmd.data.name, cmd);
+      commands.push(cmd.data.toJSON());
+
+      console.log("Loaded:", file);
+    } catch (e) {
+      console.log("Failed loading:", file);
+      console.error(e);
     }
-
-    client.commands.set(command.data.name, command);
-    commands.push(command.data.toJSON());
-
-    console.log("Loaded command:", file);
-
-  } catch (err) {
-    console.log("Error loading command:", file);
-    console.error(err);
   }
 }
 
-// -------------------
+// --------------------
 // REST
-// -------------------
+// --------------------
 const token = process.env.TOKEN;
-
 if (!token) {
-  console.error("NO TOKEN FOUND IN ENV (TOKEN)");
+  console.error("Missing TOKEN in environment variables");
   process.exit(1);
 }
 
-const rest = new REST({ version: "10" }).setToken(token);
+const rest = new (require("@discordjs/rest").REST)({ version: "10" }).setToken(token);
 
-// -------------------
-// READY EVENT (FIXED)
-// -------------------
+// --------------------
+// READY EVENT
+// --------------------
 client.once("ready", async () => {
-  console.log("BOT ONLINE:", client.user.tag);
+  console.log("✅ BOT ONLINE:", client.user.tag);
 
   client.user.setPresence({
-    activities: [
-      {
-        name: "processing orders <3",
-        type: ActivityType.Streaming,
-        url: "https://www.twitch.tv/discord"
-      }
-    ],
+    activities: [{ name: "stable system active", type: 0 }],
     status: "online"
   });
 
@@ -93,43 +90,81 @@ client.once("ready", async () => {
       { body: commands }
     );
 
-    console.log("Slash commands registered.");
+    console.log("Slash commands registered");
   } catch (err) {
     console.error("Command register error:", err);
   }
 });
 
-// -------------------
+// --------------------
+// AUTO RECONNECT LOGIC
+// --------------------
+client.on("disconnect", () => {
+  console.log("⚠️ Bot disconnected, attempting reconnect...");
+});
+
+client.on("shardDisconnect", () => {
+  console.log("⚠️ Shard disconnected");
+});
+
+client.on("shardReconnecting", () => {
+  console.log("🔄 Shard reconnecting...");
+});
+
+client.on("error", (err) => {
+  console.error("❌ Client error:", err);
+});
+
+// --------------------
 // INTERACTIONS
-// -------------------
+// --------------------
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
+  const cmd = client.commands.get(interaction.commandName);
+  if (!cmd) return;
 
   try {
-    await command.execute(interaction);
+    await cmd.execute(interaction);
   } catch (err) {
     console.error(err);
 
     if (!interaction.replied) {
       await interaction.reply({
-        content: "error executing command",
+        content: "command error",
         ephemeral: true
       }).catch(() => {});
     }
   }
 });
 
-// -------------------
-// LOGIN
-// -------------------
-console.log("TOKEN LOADED:", token ? "YES" : "NO");
+// --------------------
+// SAFE LOGIN LOOP (CRASH RECOVERY)
+// --------------------
+async function startBot() {
+  try {
+    console.log("Attempting login...");
 
-client.login(token)
-  .then(() => console.log("Discord login successful"))
-  .catch(err => {
-    console.error("Discord login failed:", err);
-    process.exit(1);
-  });
+    await client.login(token);
+
+    console.log("LOGIN SUCCESS");
+  } catch (err) {
+    console.error("LOGIN FAILED:", err);
+
+    console.log("Retrying in 10 seconds...");
+    setTimeout(startBot, 10000);
+  }
+}
+
+startBot();
+
+// --------------------
+// PROCESS SAFETY (prevents Render death loops)
+// --------------------
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled promise rejection:", err);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
