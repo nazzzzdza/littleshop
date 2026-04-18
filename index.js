@@ -4,7 +4,18 @@ const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const token = process.env.TOKEN || process.env.DISCORD_TOKEN;
+
+// Load token from environment or config.js
+let token = process.env.TOKEN || process.env.DISCORD_TOKEN;
+if (!token) {
+  try {
+    const config = require('./config.js');
+    token = config.token;
+    console.log("Using token from config.js");
+  } catch (err) {
+    // config.js doesn't exist or doesn't have token
+  }
+}
 
 // -------------------
 // Express server
@@ -81,7 +92,7 @@ for (const file of commandFiles) {
 // REST
 // -------------------
 if (!token) {
-  console.error("No Discord token found. Set TOKEN or DISCORD_TOKEN.");
+  console.error("No Discord token found. Set TOKEN or DISCORD_TOKEN env var, or create config.js with your token.");
   process.exit(1);
 }
 
@@ -136,7 +147,7 @@ client.on("shardDisconnect", (event, id) => {
 });
 
 client.on("shardReconnecting", (id) => {
-  console.warn(`Shard ${id} reconnecting...`);
+  console.warn(`Shard ${id} reconnecting...");
 });
 
 client.on("shardReady", (id) => {
@@ -179,6 +190,10 @@ client.on("interactionCreate", async (interaction) => {
 // LOGIN
 // -------------------
 console.log("TOKEN LOADED:", token ? "YES" : "NO");
+if (token) {
+  console.log("Token length:", token.length);
+  console.log("Token preview:", token.substring(0, 10) + "...");
+}
 
 // Timeout handler for stuck connections
 setTimeout(() => {
