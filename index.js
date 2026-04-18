@@ -5,20 +5,20 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------------------------
+// -------------------
 // Express server
-// ---------------------------
+// -------------------
 app.get("/", (req, res) => {
   res.send("littleshop is alive");
 });
 
 app.listen(PORT, () => {
-  console.log(`Web server running on port ${PORT}`);
+  console.log("Web server running on port", PORT);
 });
 
-// ---------------------------
+// -------------------
 // Discord client
-// ---------------------------
+// -------------------
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -29,32 +29,43 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// ---------------------------
-// Load commands
-// ---------------------------
-const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
+// -------------------
+// SAFE COMMAND LOADER (THIS IS THE FIX)
+// -------------------
 const commands = [];
 
-for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
+const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
 
-  if (command?.data?.name) {
+for (const file of commandFiles) {
+  try {
+    const command = require(`./commands/${file}`);
+
+    if (!command?.data?.name || !command?.execute) {
+      console.log("Skipped invalid command:", file);
+      continue;
+    }
+
     client.commands.set(command.data.name, command);
     commands.push(command.data.toJSON());
+
     console.log("Loaded command:", file);
+
+  } catch (err) {
+    console.log("❌ Error loading:", file);
+    console.error(err);
   }
 }
 
-// ---------------------------
+// -------------------
 // REST
-// ---------------------------
+// -------------------
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
-// ---------------------------
-// Ready event
-// ---------------------------
+// -------------------
+// READY EVENT
+// -------------------
 client.once("ready", async () => {
-  console.log(`Logged in as ${client.user.tag}`);
+  console.log("BOT ONLINE:", client.user.tag);
 
   client.user.setPresence({
     activities: [{
@@ -73,13 +84,13 @@ client.once("ready", async () => {
 
     console.log("Slash commands registered.");
   } catch (err) {
-    console.error(err);
+    console.error("Command register error:", err);
   }
 });
 
-// ---------------------------
-// Interaction handler
-// ---------------------------
+// -------------------
+// INTERACTIONS
+// -------------------
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -100,20 +111,11 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-// ---------------------------
-// Message handler
-// ---------------------------
-client.on("messageCreate", (message) => {
-  for (const command of client.commands.values()) {
-    if (typeof command.handleMessage === "function") {
-      command.handleMessage(message);
-    }
-  }
-});
+// -------------------
+// LOGIN
+// -------------------
+console.log("TOKEN LOADED:", process.env.TOKEN ? "YES" : "NO");
 
-// ---------------------------
-// Login
-// ---------------------------
 client.login(process.env.TOKEN)
   .then(() => console.log("Discord login successful"))
   .catch(err => console.error("Discord login failed:", err));
