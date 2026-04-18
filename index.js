@@ -34,11 +34,20 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildPresences
   ]
 });
 
 client.commands = new Collection();
+
+// -------------------
+// CONNECTION EVENTS
+// -------------------
+client.on("shardConnect", (id) => {
+  console.log(`Shard ${id} connected.`);
+});
 
 // -------------------
 // SAFE COMMAND LOADER
@@ -171,10 +180,17 @@ client.on("interactionCreate", async (interaction) => {
 // -------------------
 console.log("TOKEN LOADED:", token ? "YES" : "NO");
 
+// Timeout handler for stuck connections
+setTimeout(() => {
+  if (!client.isReady()) {
+    console.error("TIMEOUT: Bot failed to connect to Discord within 30 seconds");
+    process.exit(1);
+  }
+}, 30000);
+
 client.login(token)
   .then(() => console.log("Discord login successful"))
   .catch((err) => {
     console.error("Discord login failed:", err);
     process.exit(1);
   });
-
