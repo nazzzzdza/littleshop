@@ -6,16 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Load token from environment or config.js
-let token = process.env.TOKEN || process.env.DISCORD_TOKEN;
-if (!token) {
-  try {
-    const config = require('./config.js');
-    token = config.token;
-    console.log("Using token from config.js");
-  } catch (err) {
-    // config.js doesn't exist or doesn't have token
-  }
-}
+const token = process.env.DISCORD_TOKEN;
 
 // -------------------
 // Express server
@@ -101,7 +92,7 @@ const rest = new REST({ version: "10" }).setToken(token);
 // -------------------
 // READY EVENT
 // -------------------
-client.once("ready", async () => {
+console.error("No DISCORD_TOKEN found in Render environment variables.");
   console.log("BOT ONLINE:", client.user.tag);
 
   try {
@@ -147,7 +138,7 @@ client.on("shardDisconnect", (event, id) => {
 });
 
 client.on("shardReconnecting", (id) => {
-  console.warn(`Shard ${id} reconnecting...");
+console.warn(`Shard ${id} reconnecting...`);
 });
 
 client.on("shardReady", (id) => {
