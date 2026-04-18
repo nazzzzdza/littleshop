@@ -1,15 +1,26 @@
-const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
+const { Client, GatewayIntentBits, REST, Routes, Collection, ActivityType } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const token = process.env.TOKEN || process.env.DISCORD_TOKEN;
 
 // -------------------
 // Express server
 // -------------------
 app.get("/", (req, res) => {
-  res.send("littleshop is alive");
+  const status = client.isReady() ? "online" : "starting";
+  res.send(`littleshop is alive (${status})`);
+});
+
+app.get("/health", (req, res) => {
+  const ready = client.isReady();
+
+  res.status(ready ? 200 : 503).json({
+    ok: ready,
+    botReady: ready
+  });
 });
 
 app.listen(PORT, () => {
@@ -30,11 +41,13 @@ const client = new Client({
 client.commands = new Collection();
 
 // -------------------
-// SAFE COMMAND LOADER (THIS IS THE FIX)
+// SAFE COMMAND LOADER
 // -------------------
 const commands = [];
 
-const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
+const commandFiles = fs.existsSync("./commands")
+  ? fs.readdirSync("./commands").filter((f) => f.endsWith(".js"))
+  : [];
 
 for (const file of commandFiles) {
   try {
@@ -49,9 +62,8 @@ for (const file of commandFiles) {
     commands.push(command.data.toJSON());
 
     console.log("Loaded command:", file);
-
   } catch (err) {
-    console.log("❌ Error loading:", file);
+    console.log("Error loading command:", file);
     console.error(err);
   }
 }
@@ -59,7 +71,12 @@ for (const file of commandFiles) {
 // -------------------
 // REST
 // -------------------
-const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+if (!token) {
+  console.error("No Discord token found. Set TOKEN or DISCORD_TOKEN.");
+  process.exit(1);
+}
+
+const rest = new REST({ version: "10" }).setToken(token);
 
 // -------------------
 // READY EVENT
@@ -67,14 +84,20 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 client.once("ready", async () => {
   console.log("BOT ONLINE:", client.user.tag);
 
-  client.user.setPresence({
-    activities: [{
-      name: "processing orders <3",
-      type: 1,
-      url: "https://www.twitch.tv/discord"
-    }],
-    status: "online"
-  });
+  try {
+    await client.user.setPresence({
+      activities: [
+        {
+          name: "processing orders <3",
+          type: ActivityType.Streaming,
+          url: "https://www.twitch.tv/discord"
+        }
+      ],
+      status: "online"
+    });
+  } catch (err) {
+    console.error("Presence error:", err);
+  }
 
   try {
     await rest.put(
@@ -86,6 +109,33 @@ client.once("ready", async () => {
   } catch (err) {
     console.error("Command register error:", err);
   }
+});
+
+// -------------------
+// DEBUG / CONNECTION LOGS
+// -------------------
+client.on("error", (err) => {
+  console.error("Discord client error:", err);
+});
+
+client.on("warn", (info) => {
+  console.warn("Discord client warning:", info);
+});
+
+client.on("shardDisconnect", (event, id) => {
+  console.error(`Shard ${id} disconnected:`, event?.code, event?.reason || "no reason");
+});
+
+client.on("shardReconnecting", (id) => {
+  console.warn(`Shard ${id} reconnecting...`);
+});
+
+client.on("shardReady", (id) => {
+  console.log(`Shard ${id} ready.`);
+});
+
+client.on("invalidated", () => {
+  console.error("Discord session invalidated. Your token may have been reset.");
 });
 
 // -------------------
@@ -102,11 +152,16 @@ client.on("interactionCreate", async (interaction) => {
   } catch (err) {
     console.error(err);
 
-    if (!interaction.replied) {
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({
+        content: "error executing command",
+        ephemeral: true
+      }).catch(() => {});
+    } else {
       await interaction.reply({
         content: "error executing command",
         ephemeral: true
-      });
+      }).catch(() => {});
     }
   }
 });
@@ -114,8 +169,12 @@ client.on("interactionCreate", async (interaction) => {
 // -------------------
 // LOGIN
 // -------------------
-console.log("TOKEN LOADED:", process.env.TOKEN ? "YES" : "NO");
+console.log("TOKEN LOADED:", token ? "YES" : "NO");
 
-client.login(process.env.TOKEN)
+client.login(token)
   .then(() => console.log("Discord login successful"))
-  .catch(err => console.error("Discord login failed:", err));
+  .catch((err) => {
+    console.error("Discord login failed:", err);
+    process.exit(1);
+  });
+
