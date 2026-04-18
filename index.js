@@ -2,12 +2,12 @@ const { Client, GatewayIntentBits, REST, Routes, Collection, ActivityType } = re
 const fs = require("fs");
 const express = require("express");
 
+// -------------------
+// EXPRESS SERVER
+// -------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// -------------------
-// Express
-// -------------------
 app.get("/", (req, res) => {
   res.send("bot alive");
 });
@@ -17,7 +17,7 @@ app.listen(PORT, () => {
 });
 
 // -------------------
-// Client
+// DISCORD CLIENT
 // -------------------
 const client = new Client({
   intents: [
@@ -30,7 +30,7 @@ const client = new Client({
 client.commands = new Collection();
 
 // -------------------
-// Commands loader
+// SAFE COMMAND LOADER
 // -------------------
 const commands = [];
 
@@ -41,21 +41,25 @@ if (fs.existsSync("./commands")) {
     try {
       const cmd = require(`./commands/${file}`);
 
-      if (!cmd?.data?.name || !cmd?.execute) continue;
+      if (!cmd?.data?.name || !cmd?.execute) {
+        console.log("Skipped invalid:", file);
+        continue;
+      }
 
       client.commands.set(cmd.data.name, cmd);
       commands.push(cmd.data.toJSON());
 
       console.log("Loaded:", file);
-    } catch (e) {
+
+    } catch (err) {
       console.log("Failed loading:", file);
-      console.error(e);
+      console.error(err);
     }
   }
 }
 
 // -------------------
-// TOKEN FIX (IMPORTANT)
+// TOKEN
 // -------------------
 const token = process.env.TOKEN?.trim();
 
@@ -64,15 +68,18 @@ if (!token) {
   process.exit(1);
 }
 
+console.log("TOKEN LENGTH:", token.length);
+
 // -------------------
 // REST
 // -------------------
 const rest = new (require("@discordjs/rest").REST)({ version: "10" }).setToken(token);
 
 // -------------------
-// READY
+// READY EVENT
 // -------------------
 client.once("ready", async () => {
+  console.log("LOGIN SUCCESS");
   console.log("BOT ONLINE:", client.user.tag);
 
   client.user.setPresence({
@@ -119,12 +126,32 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // -------------------
-// LOGIN (FIXED + DEBUG)
+// LOGIN (STABLE)
 // -------------------
-console.log("TOKEN LENGTH:", token.length);
+async function start() {
+  try {
+    console.log("Attempting login...");
 
-client.login(token)
-  .then(() => console.log("LOGIN SUCCESS"))
-  .catch(err => {
+    await client.login(token);
+
+    console.log("LOGIN SUCCESS TRIGGERED");
+  } catch (err) {
     console.error("LOGIN FAILED:", err);
-  });
+
+    console.log("Retrying in 10s...");
+    setTimeout(start, 10000);
+  }
+}
+
+start();
+
+// -------------------
+// SAFETY HANDLERS
+// -------------------
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
