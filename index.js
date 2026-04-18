@@ -1,61 +1,130 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
+const fs = require("fs");
 const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get("/", (req, res) => res.send("alive"));
-app.listen(PORT, () => console.log("Web server running on port", PORT));
-
-// -------------------
-// TOKEN DEBUG
-// -------------------
-const rawToken = process.env.TOKEN;
-console.log("RAW TOKEN:", rawToken ? "EXISTS" : "MISSING");
-
-const token = String(rawToken || "").trim();
-console.log("TOKEN LENGTH:", token.length);
-
-// -------------------
-// CLIENT
-// -------------------
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+// ---------------------------
+// Web server (Render keep alive)
+// ---------------------------
+app.get("/", (req, res) => {
+  res.send("polka's helper is alive, checking your orders!");
 });
 
-// -------------------
-// FULL DEBUG EVENTS
-// -------------------
-client.on("ready", () => {
-  console.log("✅ READY EVENT FIRED");
-  console.log("BOT:", client.user.tag);
+app.listen(PORT, () => {
+  console.log(`Web server running on port ${PORT}`);
 });
 
-client.on("error", (err) => {
-  console.error("CLIENT ERROR:", err);
+// ---------------------------
+// Discord client
+// ---------------------------
+const client = new Client({ 
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ] 
 });
 
-client.on("debug", (msg) => {
-  console.log("DEBUG:", msg);
+client.commands = new Collection();
+
+// ---------------------------
+// Load commands
+// ---------------------------
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commands = [];
+
+for (const file of commandFiles) {
+  const command = require(`./commands/${file}`);
+
+  if (command.data) {
+    client.commands.set(command.data.name, command);
+    commands.push(command.data.toJSON());
+  }
+}
+
+// ---------------------------
+// Register slash commands
+// ---------------------------
+const token = String(process.env.TOKEN || "").trim();
+
+const rest = new REST({ version: "10" }).setToken(token);
+
+// ---------------------------
+// READY EVENT (THIS IS WHAT YOU WANTED BACK)
+// ---------------------------
+client.once("ready", async () => {
+  console.log(`polka's helper is online as ${client.user.tag}`);
+
+  const latency = Date.now() - client.readyTimestamp;
+  console.log(`latency: ${latency}ms`);
+
+  client.user.setPresence({
+    activities: [{
+      name: "processing your orders <3",
+      type: 1,
+      url: "https://www.twitch.tv/discord"
+    }],
+    status: "online"
+  });
+
+  try {
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
+    );
+    console.log("Slash commands registered.");
+  } catch (error) {
+    console.error(error);
+  }
 });
 
-client.on("warn", (msg) => {
-  console.log("WARN:", msg);
+// ---------------------------
+// Handle interactions
+// ---------------------------
+client.on("interactionCreate", async (interaction) => {
+
+  if (interaction.isChatInputCommand()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(error);
+
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: "there was an error executing that command.",
+          ephemeral: true
+        });
+      }
+    }
+  }
+
+  else {
+    for (const command of client.commands.values()) {
+      if (typeof command.handleInteraction === "function") {
+        try {
+          await command.handleInteraction(interaction);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+  }
 });
 
-client.on("shardDisconnect", (event) => {
-  console.log("DISCONNECTED:", event?.reason);
-});
-
-client.on("shardReconnecting", () => {
-  console.log("RECONNECTING...");
-});
-
-// -------------------
-// LOGIN
-// -------------------
-console.log("Attempting login...");
+// ---------------------------
+// Login
+// ---------------------------
+console.log("Token loaded:", token ? "YES" : "NO");
 
 client.login(token)
-  .then(() => console.log("LOGIN PROMISE RESOLVED"))
-  .catch(err => console.error("LOGIN ERROR:", err));
+  .then(() => {
+    console.log("Discord login successful");
+  })
+  .catch((err) => {
+    console.error("Discord login failed:", err);
+  });
