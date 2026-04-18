@@ -30,7 +30,7 @@ const client = new Client({
 client.commands = new Collection();
 
 // -------------------
-// SAFE COMMAND LOADER
+// COMMAND LOADER (SAFE)
 // -------------------
 const commands = [];
 
@@ -41,10 +41,7 @@ if (fs.existsSync("./commands")) {
     try {
       const cmd = require(`./commands/${file}`);
 
-      if (!cmd?.data?.name || !cmd?.execute) {
-        console.log("Skipped invalid:", file);
-        continue;
-      }
+      if (!cmd?.data?.name || !cmd?.execute) continue;
 
       client.commands.set(cmd.data.name, cmd);
       commands.push(cmd.data.toJSON());
@@ -52,19 +49,18 @@ if (fs.existsSync("./commands")) {
       console.log("Loaded:", file);
 
     } catch (err) {
-      console.log("Failed loading:", file);
-      console.error(err);
+      console.error("Failed loading:", file, err);
     }
   }
 }
 
 // -------------------
-// TOKEN
+// TOKEN (IMPORTANT FIX)
 // -------------------
-const token = process.env.TOKEN?.trim();
+const token = String(process.env.TOKEN || "").trim();
 
 if (!token) {
-  console.error("NO TOKEN FOUND IN ENV (TOKEN)");
+  console.error("❌ TOKEN MISSING IN ENV");
   process.exit(1);
 }
 
@@ -84,7 +80,7 @@ client.once("ready", async () => {
 
   client.user.setPresence({
     activities: [{
-      name: "processing orders <3",
+      name: "stable system running",
       type: ActivityType.Playing
     }],
     status: "online"
@@ -126,24 +122,17 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // -------------------
-// LOGIN (STABLE)
+// LOGIN (STABLE SAFE)
 // -------------------
-async function start() {
-  try {
-    console.log("Attempting login...");
+console.log("Attempting login...");
 
-    await client.login(token);
-
+client.login(token)
+  .then(() => {
     console.log("LOGIN SUCCESS TRIGGERED");
-  } catch (err) {
+  })
+  .catch((err) => {
     console.error("LOGIN FAILED:", err);
-
-    console.log("Retrying in 10s...");
-    setTimeout(start, 10000);
-  }
-}
-
-start();
+  });
 
 // -------------------
 // SAFETY HANDLERS
