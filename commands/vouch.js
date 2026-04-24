@@ -6,52 +6,72 @@ const {
   ButtonStyle
 } = require("discord.js");
 
-const fs = require("fs");
+const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 
-const filePath = path.join(__dirname, "../data/vouches.json");
+// ================= DB =================
+const db = new sqlite3.Database(path.join(__dirname, "../data/vouches.db"));
+
+// create table if not exists
+db.run(`
+CREATE TABLE IF NOT EXISTS vouches (
+  id TEXT PRIMARY KEY,
+  user TEXT,
+  author TEXT,
+  product TEXT,
+  amount TEXT,
+  price TEXT,
+  payment TEXT
+)
+`);
 
 const OWNER_ID = "827566073611419698";
-
-// ---------------- LOAD / SAVE ----------------
-function loadVouches() {
-  if (!fs.existsSync(filePath)) return [];
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-function saveVouches(data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
 
 function generateId() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// ---------------- MAIN ----------------
+// ================= PROMISE HELPERS =================
+function run(query, params = []) {
+  return new Promise((res, rej) => {
+    db.run(query, params, function (err) {
+      if (err) rej(err);
+      else res(this);
+    });
+  });
+}
+
+function all(query, params = []) {
+  return new Promise((res, rej) => {
+    db.all(query, params, (err, rows) => {
+      if (err) rej(err);
+      else res(rows);
+    });
+  });
+}
+
+// ================= COMMAND =================
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("vouch")
     .setDescription("vouch system")
 
-    // ADD
     .addSubcommand(sub =>
       sub
         .setName("add")
         .setDescription("add vouch")
-
         .addStringOption(opt =>
-          opt.setName("product").setDescription("product name only").setRequired(true)
+          opt.setName("product").setRequired(true)
         )
         .addStringOption(opt =>
-          opt.setName("amount").setDescription("amount ex. 2x").setRequired(true)
+          opt.setName("amount").setRequired(true)
         )
         .addStringOption(opt =>
-          opt.setName("price").setDescription("price, add $/€").setRequired(true)
+          opt.setName("price").setRequired(true)
         )
         .addStringOption(opt =>
           opt
             .setName("payment")
-            .setDescription("payment method")
             .setRequired(true)
             .addChoices(
               { name: "paypal", value: "paypal" },
@@ -63,29 +83,22 @@ module.exports = {
         )
     )
 
-    // LIST
     .addSubcommand(sub =>
-      sub
-        .setName("list")
-        .setDescription("list vouches")
+      sub.setName("list").setDescription("list vouches")
     )
 
-    // REMOVE 🔥 NEW
     .addSubcommand(sub =>
       sub
         .setName("remove")
-        .setDescription("remove vouch by id (#id)")
+        .setDescription("remove vouch #id")
         .addStringOption(opt =>
-          opt
-            .setName("id")
-            .setDescription("vouch id (without #)")
-            .setRequired(true)
+          opt.setName("id").setRequired(true)
         )
     ),
 
+  // ================= EXECUTE =================
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
-    let vouches = loadVouches();
 
     // ================= ADD =================
     if (sub === "add") {
@@ -96,17 +109,10 @@ module.exports = {
 
       const id = generateId();
 
-      vouches.push({
-        id,
-        user: OWNER_ID,
-        author: interaction.user.id,
-        product,
-        amount,
-        price,
-        payment
-      });
-
-      saveVouches(vouches);
+      await run(
+        `INSERT INTO vouches VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, OWNER_ID, interaction.user.id, product, amount, price, payment]
+      );
 
       await interaction.channel.send(
 ` _ _
@@ -115,52 +121,38 @@ _ _                   ﹒${amount}x ${product}
 _ _                   ﹒for ${price} ${payment}`
       );
 
-      return interaction.reply({ content: "vouch sent ♡", ephemeral: true });
+      return interaction.reply({ content: "vouch saved ♡", ephemeral: true });
     }
 
-    // ================= REMOVE 🔥 =================
+    // ================= REMOVE =================
     if (sub === "remove") {
       if (interaction.user.id !== OWNER_ID) {
-        return interaction.reply({
-          content: "you are not allowed to remove vouches",
-          ephemeral: true
-        });
+        return interaction.reply({ content: "not allowed", ephemeral: true });
       }
 
       const id = interaction.options.getString("id");
 
-      const index = vouches.findIndex(v => v.id === id);
+      const result = await run(`DELETE FROM vouches WHERE id = ?`, [id]);
 
-      if (index === -1) {
-        return interaction.reply({
-          content: "vouch not found",
-          ephemeral: true
-        });
+      if (result.changes === 0) {
+        return interaction.reply({ content: "vouch not found", ephemeral: true });
       }
 
-      vouches.splice(index, 1);
-      saveVouches(vouches);
-
-      return interaction.reply({
-        content: `removed vouch #${id}`,
-        ephemeral: true
-      });
+      return interaction.reply({ content: `removed #${id}`, ephemeral: true });
     }
 
     // ================= LIST =================
     if (sub === "list") {
-      const userVouches = vouches.filter(v => v.user === OWNER_ID);
+      const rows = await all(`SELECT * FROM vouches WHERE user = ?`, [OWNER_ID]);
 
-      if (!userVouches.length) {
-        return interaction.reply("no vouches found");
-      }
+      if (!rows.length) return interaction.reply("no vouches found");
 
       let page = 0;
       const perPage = 5;
 
       const buildEmbed = (page) => {
         const start = page * perPage;
-        const current = userVouches.slice(start, start + perPage);
+        const current = rows.slice(start, start + perPage);
 
         return new EmbedBuilder()
           .setColor(0xFFFFFF)
@@ -175,7 +167,7 @@ _ _                   ﹒#${v.id}`
             ).join("\n\n")
           )
           .setFooter({
-            text: `page ${page + 1}/${Math.ceil(userVouches.length / perPage)}`
+            text: `page ${page + 1}/${Math.ceil(rows.length / perPage)}`
           });
       };
 
@@ -190,21 +182,25 @@ _ _                   ﹒#${v.id}`
           .setCustomId("next")
           .setLabel("next")
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(userVouches.length <= perPage)
+          .setDisabled(rows.length <= perPage)
       );
 
       await interaction.reply({
         embeds: [buildEmbed(page)],
         components: [row]
       });
+
+      // store pagination state
+      this.cache = rows;
     }
   },
 
+  // ================= BUTTONS =================
   async handleInteraction(interaction) {
     if (!interaction.isButton()) return;
 
-    const vouches = loadVouches();
-    const userVouches = vouches.filter(v => v.user === OWNER_ID);
+    const rows = this.cache || [];
+    const perPage = 5;
 
     let page = parseInt(
       interaction.message.embeds[0].footer.text.match(/page (\d+)/)[1]
@@ -213,15 +209,14 @@ _ _                   ﹒#${v.id}`
     if (interaction.customId === "next") page++;
     if (interaction.customId === "prev") page--;
 
-    const perPage = 5;
-    const maxPage = Math.ceil(userVouches.length / perPage) - 1;
+    const maxPage = Math.ceil(rows.length / perPage) - 1;
 
     if (page < 0) page = 0;
     if (page > maxPage) page = maxPage;
 
     const buildEmbed = (page) => {
       const start = page * perPage;
-      const current = userVouches.slice(start, start + perPage);
+      const current = rows.slice(start, start + perPage);
 
       return new EmbedBuilder()
         .setColor(0xFFFFFF)
@@ -236,7 +231,7 @@ _ _                   ﹒#${v.id}`
           ).join("\n\n")
         )
         .setFooter({
-          text: `page ${page + 1}/${Math.ceil(userVouches.length / perPage)}`
+          text: `page ${page + 1}/${Math.ceil(rows.length / perPage)}`
         });
     };
 
