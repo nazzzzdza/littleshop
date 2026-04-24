@@ -11,7 +11,7 @@ const path = require("path");
 
 const filePath = path.join(__dirname, "../data/vouches.json");
 
-// 🔒 YOUR USER ID (ONLY PERSON WHO GETS VOUCHES)
+// YOUR ACCOUNT (person receiving vouches)
 const OWNER_ID = "827566073611419698";
 
 // ---------------- LOAD / SAVE ----------------
@@ -34,34 +34,23 @@ module.exports = {
     .setName("vouch")
     .setDescription("vouch system")
 
-    // ADD
     .addSubcommand(sub =>
       sub
         .setName("add")
         .setDescription("add vouch")
 
         .addStringOption(opt =>
-          opt
-            .setName("product")
-            .setDescription("product name")
-            .setRequired(true)
+          opt.setName("product").setDescription("product").setRequired(true)
         )
 
         .addStringOption(opt =>
-          opt
-            .setName("amount")
-            .setDescription("amount (e.g 1x)")
-            .setRequired(true)
+          opt.setName("amount").setDescription("amount").setRequired(true)
         )
 
         .addStringOption(opt =>
-          opt
-            .setName("price")
-            .setDescription("price")
-            .setRequired(true)
+          opt.setName("price").setDescription("price").setRequired(true)
         )
 
-        // ✅ PAYMENT DROPDOWN
         .addStringOption(opt =>
           opt
             .setName("payment")
@@ -69,7 +58,7 @@ module.exports = {
             .setRequired(true)
             .addChoices(
               { name: "paypal", value: "paypal" },
-              { name: "crypto", value: "ltc" },
+              { name: "ltc", value: "ltc" },
               { name: "cashapp", value: "cashapp" },
               { name: "apple pay", value: "applepay" },
               { name: "robux", value: "robux" }
@@ -77,14 +66,12 @@ module.exports = {
         )
     )
 
-    // LIST
     .addSubcommand(sub =>
       sub
         .setName("list")
         .setDescription("list vouches")
     ),
 
-  // ---------------- EXECUTE ----------------
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
     const vouches = loadVouches();
@@ -110,10 +97,9 @@ module.exports = {
 
       saveVouches(vouches);
 
-      // ✅ FIXED EMOJI FORMAT
       await interaction.channel.send(
-` _ _
-_ _     <a:w_kitty:1493560122465583134> <@${OWNER_ID}>'s vouch !
+`_ _
+_ _     <:c_butterflies:1332122946931790046> <@${interaction.user.id}>'s vouch !
 _ _                   ﹒${amount}x ${product}
 _ _                   ﹒for ${price} ${payment}`
       );
@@ -141,8 +127,8 @@ _ _                   ﹒for ${price} ${payment}`
           .setTitle("𑣲﹒naz's vouch list !")
           .setDescription(
             current.map(v =>
-` _ _
-_ _     <:w_bunny:1493559677747990538> <@${OWNER_ID}>'s vouch !
+`_ _
+_ _     <:w_bunny:1493559677747990538> <@${v.author}>'s vouch !
 _ _                   ﹒${v.amount}x ${v.product}
 _ _                   ﹒for ${v.price} ${v.payment}
 _ _                   ﹒#${v.id}`
@@ -174,7 +160,6 @@ _ _                   ﹒#${v.id}`
     }
   },
 
-  // ================= BUTTONS =================
   async handleInteraction(interaction) {
     if (!interaction.isButton()) return;
 
@@ -202,7 +187,7 @@ _ _                   ﹒#${v.id}`
         .setDescription(
           current.map(v =>
 `_ _
-_ _     <:w_bunny:1493559677747990538> <@${OWNER_ID}>'s vouch !
+_ _     <:w_bunny:1493559677747990538> <@${v.author}>'s vouch !
 _ _                   ﹒${v.amount}x ${v.product}
 _ _                   ﹒for ${v.price} ${v.payment}
 _ _                   ﹒#${v.id}`
