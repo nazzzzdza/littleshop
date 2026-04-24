@@ -11,6 +11,9 @@ const path = require("path");
 
 const filePath = path.join(__dirname, "../data/vouches.json");
 
+// 🔒 YOUR USER ID (ONLY PERSON WHO GETS VOUCHES)
+const OWNER_ID = "827566073611419698";
+
 // ---------------- LOAD / SAVE ----------------
 function loadVouches() {
   if (!fs.existsSync(filePath)) return [];
@@ -37,13 +40,6 @@ module.exports = {
         .setName("add")
         .setDescription("add vouch")
 
-        .addUserOption(opt =>
-          opt
-            .setName("user")
-            .setDescription("user to vouch")
-            .setRequired(true)
-        )
-
         .addStringOption(opt =>
           opt
             .setName("product")
@@ -65,11 +61,19 @@ module.exports = {
             .setRequired(true)
         )
 
+        // ✅ PAYMENT DROPDOWN
         .addStringOption(opt =>
           opt
             .setName("payment")
             .setDescription("payment method")
             .setRequired(true)
+            .addChoices(
+              { name: "paypal", value: "paypal" },
+              { name: "crypto", value: "ltc" },
+              { name: "cashapp", value: "cashapp" },
+              { name: "apple pay", value: "applepay" },
+              { name: "robux", value: "robux" }
+            )
         )
     )
 
@@ -78,13 +82,6 @@ module.exports = {
       sub
         .setName("list")
         .setDescription("list vouches")
-
-        .addUserOption(opt =>
-          opt
-            .setName("user")
-            .setDescription("user to view")
-            .setRequired(true)
-        )
     ),
 
   // ---------------- EXECUTE ----------------
@@ -94,7 +91,6 @@ module.exports = {
 
     // ================= ADD =================
     if (sub === "add") {
-      const user = interaction.options.getUser("user");
       const product = interaction.options.getString("product");
       const amount = interaction.options.getString("amount");
       const price = interaction.options.getString("price");
@@ -104,7 +100,7 @@ module.exports = {
 
       vouches.push({
         id,
-        user: user.id,
+        user: OWNER_ID,
         author: interaction.user.id,
         product,
         amount,
@@ -114,10 +110,10 @@ module.exports = {
 
       saveVouches(vouches);
 
-      // YOUR STYLE MESSAGE
+      // ✅ FIXED EMOJI FORMAT
       await interaction.channel.send(
-`_ _
-_ _     <a:c_butterflies:1332122946931790046> <@${user.id}>'s vouch !
+` _ _
+_ _     <a:w_kitty:1493560122465583134> <@${OWNER_ID}>'s vouch !
 _ _                   ﹒${amount}x ${product}
 _ _                   ﹒for ${price} ${payment}`
       );
@@ -127,8 +123,7 @@ _ _                   ﹒for ${price} ${payment}`
 
     // ================= LIST =================
     if (sub === "list") {
-      const user = interaction.options.getUser("user");
-      const userVouches = vouches.filter(v => v.user === user.id);
+      const userVouches = vouches.filter(v => v.user === OWNER_ID);
 
       if (!userVouches.length) {
         return interaction.reply("no vouches found");
@@ -146,8 +141,8 @@ _ _                   ﹒for ${price} ${payment}`
           .setTitle("𑣲﹒naz's vouch list !")
           .setDescription(
             current.map(v =>
-`_ _
-_ _     <a:w_bunny:1493559677747990538> <@${user.id}>'s vouch !
+` _ _
+_ _     <:w_bunny:1493559677747990538> <@${OWNER_ID}>'s vouch !
 _ _                   ﹒${v.amount}x ${v.product}
 _ _                   ﹒for ${v.price} ${v.payment}
 _ _                   ﹒#${v.id}`
@@ -184,16 +179,9 @@ _ _                   ﹒#${v.id}`
     if (!interaction.isButton()) return;
 
     const vouches = loadVouches();
+    const userVouches = vouches.filter(v => v.user === OWNER_ID);
 
-    const embed = interaction.message.embeds[0];
-    if (!embed) return;
-
-    const userId = embed.description.match(/<@(\d+)>/)?.[1];
-    if (!userId) return;
-
-    const userVouches = vouches.filter(v => v.user === userId);
-
-    let page = parseInt(embed.footer.text.match(/page (\d+)/)[1]) - 1;
+    let page = parseInt(interaction.message.embeds[0].footer.text.match(/page (\d+)/)[1]) - 1;
 
     if (interaction.customId === "next") page++;
     if (interaction.customId === "prev") page--;
@@ -214,7 +202,7 @@ _ _                   ﹒#${v.id}`
         .setDescription(
           current.map(v =>
 `_ _
-_ _     <a:w_bunny:1493559677747990538> <@${userId}>'s vouch !
+_ _     <:w_bunny:1493559677747990538> <@${OWNER_ID}>'s vouch !
 _ _                   ﹒${v.amount}x ${v.product}
 _ _                   ﹒for ${v.price} ${v.payment}
 _ _                   ﹒#${v.id}`
