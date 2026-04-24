@@ -127,8 +127,8 @@ _ _                   ﹒for ${price} ${payment}`
           .setTitle("𑣲﹒naz's vouch list !")
           .setDescription(
             current.map(v =>
-`_ _
-_ _     <:w_bunny:1493559677747990538> <@${v.author}>'s vouch !
+` _ _
+_ _     <a:w_bunny:1493559677747990538> <@${v.author}>'s vouch !
 _ _                   ﹒${v.amount}x ${v.product}
 _ _                   ﹒for ${v.price} ${v.payment}
 _ _                   ﹒#${v.id}`
@@ -186,8 +186,8 @@ _ _                   ﹒#${v.id}`
         .setTitle("𑣲﹒naz's vouch list !")
         .setDescription(
           current.map(v =>
-`_ _
-_ _     <:w_bunny:1493559677747990538> <@${v.author}>'s vouch !
+` _ _
+_ _     <a:w_bunny:1493559677747990538> <@${v.author}>'s vouch !
 _ _                   ﹒${v.amount}x ${v.product}
 _ _                   ﹒for ${v.price} ${v.payment}
 _ _                   ﹒#${v.id}`
