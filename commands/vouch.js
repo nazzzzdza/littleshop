@@ -11,7 +11,6 @@ const path = require("path");
 
 const filePath = path.join(__dirname, "../data/vouches.json");
 
-// YOUR ACCOUNT (person receiving vouches)
 const OWNER_ID = "827566073611419698";
 
 // ---------------- LOAD / SAVE ----------------
@@ -34,6 +33,7 @@ module.exports = {
     .setName("vouch")
     .setDescription("vouch system")
 
+    // ADD
     .addSubcommand(sub =>
       sub
         .setName("add")
@@ -42,15 +42,12 @@ module.exports = {
         .addStringOption(opt =>
           opt.setName("product").setDescription("product name only").setRequired(true)
         )
-
         .addStringOption(opt =>
           opt.setName("amount").setDescription("amount ex. 2x").setRequired(true)
         )
-
         .addStringOption(opt =>
           opt.setName("price").setDescription("price, add $/€").setRequired(true)
         )
-
         .addStringOption(opt =>
           opt
             .setName("payment")
@@ -66,15 +63,29 @@ module.exports = {
         )
     )
 
+    // LIST
     .addSubcommand(sub =>
       sub
         .setName("list")
         .setDescription("list vouches")
+    )
+
+    // REMOVE 🔥 NEW
+    .addSubcommand(sub =>
+      sub
+        .setName("remove")
+        .setDescription("remove vouch by id (#id)")
+        .addStringOption(opt =>
+          opt
+            .setName("id")
+            .setDescription("vouch id (without #)")
+            .setRequired(true)
+        )
     ),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
-    const vouches = loadVouches();
+    let vouches = loadVouches();
 
     // ================= ADD =================
     if (sub === "add") {
@@ -105,6 +116,35 @@ _ _                   ﹒for ${price} ${payment}`
       );
 
       return interaction.reply({ content: "vouch sent ♡", ephemeral: true });
+    }
+
+    // ================= REMOVE 🔥 =================
+    if (sub === "remove") {
+      if (interaction.user.id !== OWNER_ID) {
+        return interaction.reply({
+          content: "you are not allowed to remove vouches",
+          ephemeral: true
+        });
+      }
+
+      const id = interaction.options.getString("id");
+
+      const index = vouches.findIndex(v => v.id === id);
+
+      if (index === -1) {
+        return interaction.reply({
+          content: "vouch not found",
+          ephemeral: true
+        });
+      }
+
+      vouches.splice(index, 1);
+      saveVouches(vouches);
+
+      return interaction.reply({
+        content: `removed vouch #${id}`,
+        ephemeral: true
+      });
     }
 
     // ================= LIST =================
@@ -166,7 +206,9 @@ _ _                   ﹒#${v.id}`
     const vouches = loadVouches();
     const userVouches = vouches.filter(v => v.user === OWNER_ID);
 
-    let page = parseInt(interaction.message.embeds[0].footer.text.match(/page (\d+)/)[1]) - 1;
+    let page = parseInt(
+      interaction.message.embeds[0].footer.text.match(/page (\d+)/)[1]
+    ) - 1;
 
     if (interaction.customId === "next") page++;
     if (interaction.customId === "prev") page--;
