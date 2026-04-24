@@ -31,36 +31,63 @@ module.exports = {
     .setName("vouch")
     .setDescription("vouch system")
 
+    // ADD
     .addSubcommand(sub =>
       sub
         .setName("add")
         .setDescription("add vouch")
+
         .addUserOption(opt =>
-          opt.setName("user").setRequired(true)
+          opt
+            .setName("user")
+            .setDescription("user to vouch")
+            .setRequired(true)
         )
+
         .addStringOption(opt =>
-          opt.setName("product").setRequired(true)
+          opt
+            .setName("product")
+            .setDescription("product name")
+            .setRequired(true)
         )
+
         .addStringOption(opt =>
-          opt.setName("amount").setRequired(true)
+          opt
+            .setName("amount")
+            .setDescription("amount (e.g 1x)")
+            .setRequired(true)
         )
+
         .addStringOption(opt =>
-          opt.setName("price").setRequired(true)
+          opt
+            .setName("price")
+            .setDescription("price")
+            .setRequired(true)
         )
+
         .addStringOption(opt =>
-          opt.setName("payment").setRequired(true)
+          opt
+            .setName("payment")
+            .setDescription("payment method")
+            .setRequired(true)
         )
     )
 
+    // LIST
     .addSubcommand(sub =>
       sub
         .setName("list")
         .setDescription("list vouches")
+
         .addUserOption(opt =>
-          opt.setName("user").setRequired(true)
+          opt
+            .setName("user")
+            .setDescription("user to view")
+            .setRequired(true)
         )
     ),
 
+  // ---------------- EXECUTE ----------------
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
     const vouches = loadVouches();
