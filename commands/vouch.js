@@ -56,46 +56,60 @@ module.exports = {
     .setName("vouch")
     .setDescription("vouch system")
 
-    .addSubcommand(sub =>
-      sub
-        .setName("add")
-        .setDescription("add vouch")
-        .addStringOption(opt =>
-          opt.setName("product").setRequired(true)
-        )
-        .addStringOption(opt =>
-          opt.setName("amount").setRequired(true)
-        )
-        .addStringOption(opt =>
-          opt.setName("price").setRequired(true)
-        )
-        .addStringOption(opt =>
-          opt
-            .setName("payment")
-            .setRequired(true)
-            .addChoices(
-              { name: "paypal", value: "paypal" },
-              { name: "ltc", value: "ltc" },
-              { name: "cashapp", value: "cashapp" },
-              { name: "apple pay", value: "applepay" },
-              { name: "robux", value: "robux" }
-            )
-        )
+  .addSubcommand(sub =>
+  sub
+    .setName("add")
+    .setDescription("add vouch")
+
+    .addStringOption(opt =>
+      opt.setName("product")
+        .setDescription("product name")
+        .setRequired(true)
     )
 
-    .addSubcommand(sub =>
-      sub.setName("list").setDescription("list vouches")
+    .addStringOption(opt =>
+      opt.setName("amount")
+        .setDescription("amount e.g 1x")
+        .setRequired(true)
     )
 
-    .addSubcommand(sub =>
-      sub
-        .setName("remove")
-        .setDescription("remove vouch #id")
-        .addStringOption(opt =>
-          opt.setName("id").setRequired(true)
-        )
-    ),
+    .addStringOption(opt =>
+      opt.setName("price")
+        .setDescription("price of product")
+        .setRequired(true)
+    )
 
+    .addStringOption(opt =>
+      opt.setName("payment")
+        .setDescription("payment method")
+        .setRequired(true)
+        .addChoices(
+          { name: "paypal", value: "paypal" },
+          { name: "ltc", value: "ltc" },
+          { name: "cashapp", value: "cashapp" },
+          { name: "apple pay", value: "applepay" },
+          { name: "robux", value: "robux" }
+        )
+    )
+)
+
+.addSubcommand(sub =>
+  sub
+    .setName("list")
+    .setDescription("list vouches")
+)
+
+.addSubcommand(sub =>
+  sub
+    .setName("remove")
+    .setDescription("remove vouch by id")
+    .addStringOption(opt =>
+      opt.setName("id")
+        .setDescription("vouch id (#123456)")
+        .setRequired(true)
+    )
+)
+    
   // ================= EXECUTE =================
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
