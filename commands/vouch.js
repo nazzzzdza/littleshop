@@ -12,7 +12,6 @@ const path = require("path");
 // ================= DB =================
 const db = new sqlite3.Database(path.join(__dirname, "../data/vouches.db"));
 
-// create table if not exists
 db.run(`
 CREATE TABLE IF NOT EXISTS vouches (
   id TEXT PRIMARY KEY,
@@ -22,8 +21,7 @@ CREATE TABLE IF NOT EXISTS vouches (
   amount TEXT,
   price TEXT,
   payment TEXT
-)
-`);
+)`);
 
 const OWNER_ID = "827566073611419698";
 
@@ -56,60 +54,57 @@ module.exports = {
     .setName("vouch")
     .setDescription("vouch system")
 
-  .addSubcommand(sub =>
-  sub
-    .setName("add")
-    .setDescription("add vouch")
-
-    .addStringOption(opt =>
-      opt.setName("product")
-        .setDescription("product name")
-        .setRequired(true)
-    )
-
-    .addStringOption(opt =>
-      opt.setName("amount")
-        .setDescription("amount e.g 1")
-        .setRequired(true)
-    )
-
-    .addStringOption(opt =>
-      opt.setName("price")
-        .setDescription("price, add $/€")
-        .setRequired(true)
-    )
-
-    .addStringOption(opt =>
-      opt.setName("payment")
-        .setDescription("payment method")
-        .setRequired(true)
-        .addChoices(
-          { name: "paypal", value: "paypal" },
-          { name: "ltc", value: "ltc" },
-          { name: "cashapp", value: "cashapp" },
-          { name: "apple pay", value: "applepay" },
-          { name: "robux", value: "robux" }
+    .addSubcommand(sub =>
+      sub
+        .setName("add")
+        .setDescription("add vouch")
+        .addStringOption(opt =>
+          opt.setName("product")
+            .setDescription("product name")
+            .setRequired(true)
+        )
+        .addStringOption(opt =>
+          opt.setName("amount")
+            .setDescription("amount e.g 1x")
+            .setRequired(true)
+        )
+        .addStringOption(opt =>
+          opt.setName("price")
+            .setDescription("price")
+            .setRequired(true)
+        )
+        .addStringOption(opt =>
+          opt.setName("payment")
+            .setDescription("payment method")
+            .setRequired(true)
+            .addChoices(
+              { name: "paypal", value: "paypal" },
+              { name: "ltc", value: "ltc" },
+              { name: "cashapp", value: "cashapp" },
+              { name: "apple pay", value: "applepay" },
+              { name: "robux", value: "robux" }
+            )
         )
     )
-)
 
-.addSubcommand(sub =>
-  sub
-    .setName("list")
-    .setDescription("list vouches")
-)
-
-.addSubcommand(sub =>
-  sub
-    .setName("remove")
-    .setDescription("remove vouch by id")
-    .addStringOption(opt =>
-      opt.setName("id")
-        .setDescription("vouch id (#123456)")
-        .setRequired(true)
+    .addSubcommand(sub =>
+      sub
+        .setName("list")
+        .setDescription("list vouches")
     )
-)
-    
+
+    .addSubcommand(sub =>
+      sub
+        .setName("remove")
+        .setDescription("remove vouch by id")
+        .addStringOption(opt =>
+          opt.setName("id")
+            .setDescription("vouch id (#123456)")
+            .setRequired(true)
+        )
+    )
+  , // ✅ IMPORTANT FIX (closes SlashCommandBuilder)
+
   // ================= EXECUTE =================
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
@@ -132,7 +127,8 @@ module.exports = {
 ` _ _
 _ _     <a:w_kitty:1493560122465583134> <@${interaction.user.id}>'s vouch !
 _ _                   ﹒${amount}x ${product}
-_ _                   ﹒for ${price} ${payment}`
+_ _                   ﹒for ${price} ${payment}
+_ _                   ﹒#${id}`
       );
 
       return interaction.reply({ content: "vouch saved ♡", ephemeral: true });
@@ -159,7 +155,9 @@ _ _                   ﹒for ${price} ${payment}`
     if (sub === "list") {
       const rows = await all(`SELECT * FROM vouches WHERE user = ?`, [OWNER_ID]);
 
-      if (!rows.length) return interaction.reply("no vouches found");
+      if (!rows.length) {
+        return interaction.reply("no vouches found");
+      }
 
       let page = 0;
       const perPage = 5;
@@ -204,7 +202,6 @@ _ _                   ﹒#${v.id}`
         components: [row]
       });
 
-      // store pagination state
       this.cache = rows;
     }
   },
