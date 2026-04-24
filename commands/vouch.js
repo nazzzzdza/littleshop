@@ -40,15 +40,15 @@ module.exports = {
         .setDescription("add vouch")
 
         .addStringOption(opt =>
-          opt.setName("product").setDescription("product").setRequired(true)
+          opt.setName("product").setDescription("product name only").setRequired(true)
         )
 
         .addStringOption(opt =>
-          opt.setName("amount").setDescription("amount").setRequired(true)
+          opt.setName("amount").setDescription("amount ex. 2x").setRequired(true)
         )
 
         .addStringOption(opt =>
-          opt.setName("price").setDescription("price").setRequired(true)
+          opt.setName("price").setDescription("price, add $/€").setRequired(true)
         )
 
         .addStringOption(opt =>
@@ -98,8 +98,8 @@ module.exports = {
       saveVouches(vouches);
 
       await interaction.channel.send(
-`_ _
-_ _     <:c_butterflies:1332122946931790046> <@${interaction.user.id}>'s vouch !
+` _ _
+_ _     <a:w_kitty:1493560122465583134> <@${interaction.user.id}>'s vouch !
 _ _                   ﹒${amount}x ${product}
 _ _                   ﹒for ${price} ${payment}`
       );
