@@ -6,12 +6,26 @@ const {
   ButtonStyle
 } = require("discord.js");
 
+const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 
-// ================= DB =================
-const db = new sqlite3.Database(path.join(__dirname, "../data/vouches.db"));
+// ================= ENSURE DATA FOLDER =================
+const dataDir = path.join(__dirname, "../data");
 
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// ================= DATABASE =================
+const dbPath = path.join(dataDir, "vouches.db");
+
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) console.error("SQLite error:", err);
+  else console.log("SQLite connected:", dbPath);
+});
+
+// create table
 db.run(`
 CREATE TABLE IF NOT EXISTS vouches (
   id TEXT PRIMARY KEY,
@@ -21,15 +35,16 @@ CREATE TABLE IF NOT EXISTS vouches (
   amount TEXT,
   price TEXT,
   payment TEXT
-)`);
+)
+`);
 
 const OWNER_ID = "827566073611419698";
 
+// ================= HELPERS =================
 function generateId() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// ================= PROMISE HELPERS =================
 function run(query, params = []) {
   return new Promise((res, rej) => {
     db.run(query, params, function (err) {
@@ -88,9 +103,7 @@ module.exports = {
     )
 
     .addSubcommand(sub =>
-      sub
-        .setName("list")
-        .setDescription("list vouches")
+      sub.setName("list").setDescription("list vouches")
     )
 
     .addSubcommand(sub =>
@@ -102,8 +115,7 @@ module.exports = {
             .setDescription("vouch id (#123456)")
             .setRequired(true)
         )
-    )
-  , // ✅ IMPORTANT FIX (closes SlashCommandBuilder)
+    ),
 
   // ================= EXECUTE =================
   async execute(interaction) {
@@ -155,9 +167,7 @@ _ _                   ﹒#${id}`
     if (sub === "list") {
       const rows = await all(`SELECT * FROM vouches WHERE user = ?`, [OWNER_ID]);
 
-      if (!rows.length) {
-        return interaction.reply("no vouches found");
-      }
+      if (!rows.length) return interaction.reply("no vouches found");
 
       let page = 0;
       const perPage = 5;
