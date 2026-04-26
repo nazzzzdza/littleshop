@@ -6,61 +6,14 @@ const {
   ButtonStyle
 } = require("discord.js");
 
-const fs = require("fs");
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
-
-// ================= ENSURE DATA FOLDER =================
-const dataDir = path.join(__dirname, "../data");
-
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-// ================= DATABASE =================
-const dbPath = path.join(dataDir, "vouches.db");
-
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) console.error("SQLite error:", err);
-  else console.log("SQLite connected:", dbPath);
-});
-
-// create table
-db.run(`
-CREATE TABLE IF NOT EXISTS vouches (
-  id TEXT PRIMARY KEY,
-  user TEXT,
-  author TEXT,
-  product TEXT,
-  amount TEXT,
-  price TEXT,
-  payment TEXT
-)
-`);
+// ✅ SUPABASE
+const { supabase } = require("../index");
 
 const OWNER_ID = "827566073611419698";
 
 // ================= HELPERS =================
 function generateId() {
   return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function run(query, params = []) {
-  return new Promise((res, rej) => {
-    db.run(query, params, function (err) {
-      if (err) rej(err);
-      else res(this);
-    });
-  });
-}
-
-function all(query, params = []) {
-  return new Promise((res, rej) => {
-    db.all(query, params, (err, rows) => {
-      if (err) rej(err);
-      else res(rows);
-    });
-  });
 }
 
 // ================= COMMAND =================
@@ -130,10 +83,22 @@ module.exports = {
 
       const id = generateId();
 
-      await run(
-        `INSERT INTO vouches VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [id, OWNER_ID, interaction.user.id, product, amount, price, payment]
-      );
+      const { error } = await supabase
+        .from("vouches")
+        .insert([{
+          id,
+          user: OWNER_ID,
+          author: interaction.user.id,
+          product,
+          amount,
+          price,
+          payment
+        }]);
+
+      if (error) {
+        console.error(error);
+        return interaction.reply({ content: "database error", ephemeral: true });
+      }
 
       await interaction.channel.send(
 ` _ _
@@ -154,10 +119,14 @@ _ _                   ﹒#${id}`
 
       const id = interaction.options.getString("id");
 
-      const result = await run(`DELETE FROM vouches WHERE id = ?`, [id]);
+      const { data, error } = await supabase
+        .from("vouches")
+        .delete()
+        .eq("id", id);
 
-      if (result.changes === 0) {
-        return interaction.reply({ content: "vouch not found", ephemeral: true });
+      if (error) {
+        console.error(error);
+        return interaction.reply({ content: "error removing", ephemeral: true });
       }
 
       return interaction.reply({ content: `removed #${id}`, ephemeral: true });
@@ -165,7 +134,15 @@ _ _                   ﹒#${id}`
 
     // ================= LIST =================
     if (sub === "list") {
-      const rows = await all(`SELECT * FROM vouches WHERE user = ?`, [OWNER_ID]);
+      const { data: rows, error } = await supabase
+        .from("vouches")
+        .select("*")
+        .eq("user", OWNER_ID);
+
+      if (error) {
+        console.error(error);
+        return interaction.reply("database error");
+      }
 
       if (!rows.length) return interaction.reply("no vouches found");
 
