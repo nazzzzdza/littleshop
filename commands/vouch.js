@@ -33,12 +33,12 @@ module.exports = {
         )
         .addStringOption(opt =>
           opt.setName("amount")
-            .setDescription("amount e.g 1x")
+            .setDescription("amount e.g 1 (no x after amount)")
             .setRequired(true)
         )
         .addStringOption(opt =>
           opt.setName("price")
-            .setDescription("price")
+            .setDescription("price, add $/€ infront")
             .setRequired(true)
         )
         .addStringOption(opt =>
