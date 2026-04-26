@@ -83,7 +83,8 @@ module.exports = {
 
       const id = generateId();
 
-      const { error } = await supabase
+      // ✅ DEBUG INSERT
+      const { data, error } = await supabase
         .from("vouches")
         .insert([{
           id,
@@ -93,10 +94,13 @@ module.exports = {
           amount,
           price,
           payment
-        }]);
+        }])
+        .select();
+
+      console.log("INSERT RESULT:", data);
+      console.log("INSERT ERROR:", error);
 
       if (error) {
-        console.error(error);
         return interaction.reply({ content: "database error", ephemeral: true });
       }
 
@@ -119,7 +123,7 @@ _ _                   ﹒#${id}`
 
       const id = interaction.options.getString("id");
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("vouches")
         .delete()
         .eq("id", id);
@@ -139,8 +143,10 @@ _ _                   ﹒#${id}`
         .select("*")
         .eq("user", OWNER_ID);
 
+      console.log("FETCH RESULT:", rows);
+      console.log("FETCH ERROR:", error);
+
       if (error) {
-        console.error(error);
         return interaction.reply("database error");
       }
 
