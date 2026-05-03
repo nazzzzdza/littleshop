@@ -77,7 +77,7 @@ client.once("ready", async () => {
       type: 1,
       url: "https://www.twitch.tv/discord"
     }],
-    status: "online"
+    status: "streaming"
   });
 
   try {
