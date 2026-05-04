@@ -5,11 +5,11 @@ const {
 
 // fees
 const METHODS = {
-  cashapp_teen: { name: "cashapp -18", fee: 4, currency: "$" },
-  cashapp_adult: { name: "cashapp +18", fee: 4, currency: "$" },
+  cashapp_teen: { name: "cashapp -18", fee: 6, currency: "$" },
+  cashapp_adult: { name: "cashapp +18", fee: 5, currency: "$" },
   paypal_eur: { name: "paypal €", fee: 8, currency: "€" },
-  paypal_usd: { name: "paypal $", fee: 2, currency: "$" },
-  applepay: { name: "apple pay", fee: 2, currency: "$" },
+  paypal_usd: { name: "paypal $", fee: 4, currency: "$" },
+  applepay: { name: "apple pay", fee: 4, currency: "$" },
   ltc: { name: "ltc", fee: 0, currency: "$" }
 };
 
