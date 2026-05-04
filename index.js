@@ -7,19 +7,24 @@ const express = require("express");
 // ============================
 const { createClient } = require("@supabase/supabase-js");
 
-// 🔥 FORCE DISABLE REALTIME COMPLETELY
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
-  {
-    realtime: {
-      enabled: false
+const fetch = require("node-fetch");
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+// example insert
+async function insertVouch(data) {
+  return await fetch(`${SUPABASE_URL}/rest/v1/vouches`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal"
     },
-    auth: {
-      persistSession: false
-    }
-  }
-);
+    body: JSON.stringify(data)
+  });
+}
 
 module.exports.supabase = supabase;
 
