@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
+const ws = require("ws");
 
 // ✅ SUPABASE (ADDED)
 const { createClient } = require("@supabase/supabase-js");
