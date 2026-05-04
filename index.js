@@ -1,31 +1,26 @@
 const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
-const ws = require("ws");
 
-// ✅ SUPABASE (ADDED)
+// ---------------------------
+// SUPABASE (CLEAN - NO WS, NO REALTIME)
+// ---------------------------
 const { createClient } = require("@supabase/supabase-js");
-const ws = require("ws");
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
-  {
-    realtime: {
-      transport: ws
-    }
-  }
+  process.env.SUPABASE_KEY
 );
 
-// export so commands can use it
+// export for commands
 module.exports.supabase = supabase;
 
+// ---------------------------
+// EXPRESS (keep alive)
+// ---------------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------------------------
-// Web server (Render keep alive)
-// ---------------------------
 app.get("/", (req, res) => {
   res.send("polka's helper is alive, checking your orders!");
 });
@@ -35,22 +30,22 @@ app.listen(PORT, () => {
 });
 
 // ---------------------------
-// Discord client
+// DISCORD CLIENT
 // ---------------------------
-const client = new Client({ 
+const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
-  ] 
+  ]
 });
 
 client.commands = new Collection();
 
 // ---------------------------
-// Load commands
+// LOAD COMMANDS
 // ---------------------------
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
 const commands = [];
 
 for (const file of commandFiles) {
@@ -63,7 +58,7 @@ for (const file of commandFiles) {
 }
 
 // ---------------------------
-// Register slash commands
+// TOKEN + REST
 // ---------------------------
 const token = String(process.env.TOKEN || "").trim();
 
@@ -75,16 +70,15 @@ const rest = new REST({ version: "10" }).setToken(token);
 client.once("ready", async () => {
   console.log(`polka's helper is online as ${client.user.tag}`);
 
-  const latency = Date.now() - client.readyTimestamp;
-  console.log(`latency: ${latency}ms`);
-
   client.user.setPresence({
-    activities: [{
-      name: "processing your orders <3",
-      type: 1,
-      url: "https://www.twitch.tv/discord"
-    }],
-    status: "streaming"
+    activities: [
+      {
+        name: "processing your orders <3",
+        type: 1,
+        url: "https://www.twitch.tv/discord"
+      }
+    ],
+    status: "online"
   });
 
   try {
@@ -92,14 +86,15 @@ client.once("ready", async () => {
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
+
     console.log("Slash commands registered.");
   } catch (error) {
-    console.error(error);
+    console.error("Slash command error:", error);
   }
 });
 
 // ---------------------------
-// Handle interactions
+// INTERACTIONS
 // ---------------------------
 client.on("interactionCreate", async (interaction) => {
 
@@ -135,7 +130,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // ---------------------------
-// Login
+// LOGIN
 // ---------------------------
 console.log("Token loaded:", token ? "YES" : "NO");
 
