@@ -7,12 +7,20 @@ const express = require("express");
 // ============================
 const { createClient } = require("@supabase/supabase-js");
 
+// 🔥 FORCE DISABLE REALTIME COMPLETELY
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
+  process.env.SUPABASE_KEY,
+  {
+    realtime: {
+      enabled: false
+    },
+    auth: {
+      persistSession: false
+    }
+  }
 );
 
-// export for commands
 module.exports.supabase = supabase;
 
 // ============================
