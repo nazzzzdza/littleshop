@@ -2,13 +2,9 @@ const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord
 const fs = require("fs");
 const express = require("express");
 
-// ============================
-// SUPABASE (SAFE MODE - NO REALTIME)
-// ============================
-
+// ✅ SUPABASE (SAFE VERSION - NO REALTIME)
 const { createClient } = require("@supabase/supabase-js");
 
-// 🔥 HARD DISABLE EVERYTHING REALTIME CAN TOUCH
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY,
@@ -18,24 +14,16 @@ const supabase = createClient(
       autoRefreshToken: false
     },
     realtime: {
-      enabled: false,
-      params: {
-        eventsPerSecond: 0
-      }
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "disabled-realtime"
-      }
+      enabled: false
     }
   }
 );
 
 module.exports.supabase = supabase;
 
-// ============================
-// EXPRESS KEEP ALIVE (RENDER)
-// ============================
+// ---------------------------
+// Web server (Render keep alive)
+// ---------------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -47,23 +35,23 @@ app.listen(PORT, () => {
   console.log(`Web server running on port ${PORT}`);
 });
 
-// ============================
-// DISCORD CLIENT
-// ============================
-const client = new Client({
+// ---------------------------
+// Discord client
+// ---------------------------
+const client = new Client({ 
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
-  ]
+  ] 
 });
 
 client.commands = new Collection();
 
-// ============================
-// LOAD COMMANDS
-// ============================
-const commandFiles = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
+// ---------------------------
+// Load commands
+// ---------------------------
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 const commands = [];
 
 for (const file of commandFiles) {
@@ -75,27 +63,24 @@ for (const file of commandFiles) {
   }
 }
 
-// ============================
-// TOKEN + REST
-// ============================
+// ---------------------------
+// Register slash commands
+// ---------------------------
 const token = String(process.env.TOKEN || "").trim();
-
 const rest = new REST({ version: "10" }).setToken(token);
 
-// ============================
+// ---------------------------
 // READY EVENT
-// ============================
+// ---------------------------
 client.once("ready", async () => {
   console.log(`polka's helper is online as ${client.user.tag}`);
 
   client.user.setPresence({
-    activities: [
-      {
-        name: "processing your orders <3",
-        type: 1,
-        url: "https://www.twitch.tv/discord"
-      }
-    ],
+    activities: [{
+      name: "processing your orders <3",
+      type: 1,
+      url: "https://www.twitch.tv/discord"
+    }],
     status: "online"
   });
 
@@ -104,16 +89,15 @@ client.once("ready", async () => {
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
-
     console.log("Slash commands registered.");
   } catch (error) {
-    console.error("Slash command error:", error);
+    console.error(error);
   }
 });
 
-// ============================
-// INTERACTION HANDLER
-// ============================
+// ---------------------------
+// Handle interactions
+// ---------------------------
 client.on("interactionCreate", async (interaction) => {
 
   if (interaction.isChatInputCommand()) {
@@ -147,9 +131,9 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-// ============================
-// LOGIN
-// ============================
+// ---------------------------
+// Login
+// ---------------------------
 console.log("Token loaded:", token ? "YES" : "NO");
 
 client.login(token)
