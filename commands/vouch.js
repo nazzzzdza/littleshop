@@ -49,7 +49,6 @@ module.exports = {
               { name: "paypal", value: "paypal" },
               { name: "ltc", value: "ltc" },
               { name: "cashapp", value: "cashapp" },
-              { name: "apple pay", value: "applepay" },
               { name: "robux", value: "robux" }
             )
         )
