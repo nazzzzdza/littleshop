@@ -1,28 +1,21 @@
+globalThis.WebSocket = require("ws");
+
 const { Client, GatewayIntentBits, REST, Routes, Collection } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
 
-// ✅ SUPABASE (SAFE VERSION - NO REALTIME)
+// ✅ SUPABASE
 const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    },
-    realtime: {
-      enabled: false
-    }
-  }
+  process.env.SUPABASE_KEY
 );
 
 module.exports.supabase = supabase;
 
 // ---------------------------
-// Web server (Render keep alive)
+// Web server
 // ---------------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,12 +31,12 @@ app.listen(PORT, () => {
 // ---------------------------
 // Discord client
 // ---------------------------
-const client = new Client({ 
+const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
-  ] 
+  ]
 });
 
 client.commands = new Collection();
@@ -51,7 +44,7 @@ client.commands = new Collection();
 // ---------------------------
 // Load commands
 // ---------------------------
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith(".js"));
 const commands = [];
 
 for (const file of commandFiles) {
@@ -64,20 +57,20 @@ for (const file of commandFiles) {
 }
 
 // ---------------------------
-// Register slash commands
+// Slash commands
 // ---------------------------
 const token = String(process.env.TOKEN || "").trim();
 const rest = new REST({ version: "10" }).setToken(token);
 
 // ---------------------------
-// READY EVENT
+// Ready event
 // ---------------------------
 client.once("ready", async () => {
   console.log(`polka's helper is online as ${client.user.tag}`);
 
   client.user.setPresence({
     activities: [{
-      name: "processing your orders <3",
+      name: "dm me for inquiries <3",
       type: 1,
       url: "https://www.twitch.tv/discord"
     }],
@@ -89,6 +82,7 @@ client.once("ready", async () => {
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
+
     console.log("Slash commands registered.");
   } catch (error) {
     console.error(error);
@@ -96,7 +90,7 @@ client.once("ready", async () => {
 });
 
 // ---------------------------
-// Handle interactions
+// Interactions
 // ---------------------------
 client.on("interactionCreate", async (interaction) => {
 
