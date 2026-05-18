@@ -6,10 +6,9 @@ const {
 // fees
 const METHODS = {
   cashapp_teen: { name: "cashapp -18", fee: 6, currency: "$" },
-  cashapp_adult: { name: "cashapp +18", fee: 5, currency: "$" },
-  paypal_eur: { name: "paypal €", fee: 8, currency: "€" },
-  paypal_usd: { name: "paypal $", fee: 4, currency: "$" },
-  applepay: { name: "apple pay", fee: 4, currency: "$" },
+  cashapp_adult: { name: "cashapp +18", fee: 6, currency: "$" },
+  paypal_eur: { name: "paypal €", fee: 10, currency: "€" },
+  paypal_usd: { name: "paypal $", fee: 6, currency: "$" },
   ltc: { name: "ltc", fee: 0, currency: "$" }
 };
 
@@ -56,7 +55,6 @@ module.exports = {
           { name: "cashapp +18", value: "cashapp_adult" },
           { name: "paypal €", value: "paypal_eur" },
           { name: "paypal $", value: "paypal_usd" },
-          { name: "apple pay", value: "applepay" },
           { name: "ltc", value: "ltc" }
         )
     ),
